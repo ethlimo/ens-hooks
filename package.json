@@ -1,0 +1,20 @@
+{
+  "name": "experimental_ens_query",
+  "version": "0.0.1",
+  "description": "experimental ENS query environment for ENSIPs",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "eth.limo team",
+  "license": "ISC",
+  "devDependencies": {
+    "@ensdomains/contracts": "^0.0.3",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.18"
+  },
+  "dependencies": {
+    "@ensdomains/ens-contracts": "^1.2.4",
+    "ethers": "^6.13.5"
+  }
+}

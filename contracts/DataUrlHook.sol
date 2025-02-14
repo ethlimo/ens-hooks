@@ -8,7 +8,14 @@ import "./IDataUrlHook.sol";
 
 contract DataUrlHook is Ownable, ERC165, IExtendedResolver {
     using BytesUtils for bytes;
-    mapping(bytes32 => string) public dataUrls;
+    mapping(bytes32 => string) dataUrls;
+
+    //a cache control nonce is a unique ID that can be used to invalidate a cache serving this data as static content
+    //when the nonce has not changed, it is considered safe to not invalidate the cache of the service serving this data
+    //no change: content may be refetched at any time, but is assumed unchanged
+    //change: content must be considered invalid, but may be subject to service's minimum cache time
+    //programmatic change (i.e. nonce = block.timestamp): cache will always be considered stale, subject to service's minimum caching time
+    mapping(bytes32 => uint256) cacheControlNonce;
 
     function resolve(
         bytes memory _name,
@@ -28,9 +35,21 @@ contract DataUrlHook is Ownable, ERC165, IExtendedResolver {
         return bytes(dataUrls[node]);
     }
 
-    function setDataURL(bytes32 node, string calldata dataUrl) public onlyOwner {
+    function setDataURL(bytes32 node, bool updateNonce, string calldata dataUrl) public onlyOwner {
         dataUrls[node] = dataUrl;
+        if(updateNonce) {
+            cacheControlNonce[node] = block.timestamp;
+        }
     }
+
+    function setCacheControlNonce(bytes32 node, uint256 nonce) public onlyOwner {
+        cacheControlNonce[node] = nonce;
+    }
+
+    function getCacheControlNonce(bytes32 node) public view returns (uint256) {
+        return cacheControlNonce[node];
+    }
+
 
     function supportsInterface(
         bytes4 interfaceID

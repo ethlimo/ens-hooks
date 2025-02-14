@@ -10,17 +10,16 @@ import { dnsEncode, getBytes, namehash } from "ethers";
 describe("DataUrlHook", function () {
   async function deployFixture() {
     const [owner, otherAccount] = await hre.ethers.getSigners();
-
     const contract = await hre.ethers.deployContract("DataUrlHook");
     return { owner, otherAccount, contract };
   }
 
-  it("should work", async function () {
+  it("should store arbitrary data and retrieve it", async function () {
     const nameHash = namehash("asdf.eth");
     const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
     const { contract } = await loadFixture(deployFixture);
 
-    await contract.setDataURL(nameHash, "asdf");
+    await contract.setDataURL(nameHash, true, "asdf");
     const encoded = encodeDataUrlAbi("asdf.eth", await contract.getAddress(), chainId)
     const v = await contract.resolve(dnsEncode("asdf.eth"), encoded);
     expect(decodeResolveBytesToString(v)).to.equal("asdf");

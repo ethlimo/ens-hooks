@@ -2,7 +2,11 @@
   "name": "experimental_ens_query",
   "version": "0.0.1",
   "description": "experimental ENS query environment for ENSIPs",
-  "main": "index.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,11 +14,23 @@
   "license": "ISC",
   "devDependencies": {
     "@ensdomains/contracts": "^0.0.3",
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "hardhat": "^2.22.18"
+    "@nomicfoundation/hardhat-errors": "^3.0.0-next.1",
+    "@nomicfoundation/hardhat-ethers": "^4.0.0-next.1",
+    "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0-next.1",
+    "@nomicfoundation/hardhat-ignition": "^3.0.0-next.1",
+    "@nomicfoundation/hardhat-keystore": "^3.0.0-next.1",
+    "@nomicfoundation/hardhat-mocha": "^3.0.0-next.1",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.0-next.1",
+    "@nomicfoundation/hardhat-node-test-runner": "^3.0.0-next.1",
+    "@nomicfoundation/hardhat-typechain": "^3.0.0-next.1",
+    "@nomicfoundation/ignition-core": "^3.0.0-next.1",
+    "@types/mocha": "^10.0.10",
+    "hardhat": "^3.0.0-next.1"
   },
   "dependencies": {
     "@ensdomains/ens-contracts": "^1.2.4",
+    "@nomicfoundation/hardhat-ignition-ethers": "^3.0.0-next.1",
     "ethers": "^6.13.5"
-  }
+  },
+  "type": "module"
 }

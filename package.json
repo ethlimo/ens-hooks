@@ -1,19 +1,20 @@
 {
-  "name": "experimental_ens_query",
-  "version": "0.0.1",
-  "description": "experimental ENS query environment for ENSIPs",
+  "name": "ens-hooks",
+  "version": "0.1.0",
+  "description": "experimental ENS query environment for ENS hooks draft ENSIPs",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare": "npx hardhat compile && npx tsc",
+    "clean": "npx hardhat clean && rm -rf dist",
+    "test": "npx hardhat test"
   },
   "author": "eth.limo team",
   "license": "ISC",
   "devDependencies": {
-    "@ensdomains/contracts": "^0.0.3",
     "@nomicfoundation/hardhat-errors": "^3.0.0-next.1",
     "@nomicfoundation/hardhat-ethers": "^4.0.0-next.1",
     "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0-next.1",

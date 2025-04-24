@@ -5,12 +5,15 @@
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "contracts"
   ],
   "scripts": {
     "prepare": "npx hardhat compile && npx tsc",
     "clean": "npx hardhat clean && rm -rf dist",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "run-deploy-localhost": "npx hardhat run scripts/deploy.ts --network localhost"
   },
   "author": "eth.limo team",
   "license": "ISC",

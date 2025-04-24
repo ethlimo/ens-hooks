@@ -9,7 +9,17 @@ import { JsonRpcProvider } from "ethers";
 import { DATA_URL_PREFIX } from "../src/dataurl/constants.js";
 
 const VITALIK_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
-
+function unsignedRightShiftBigInt(num: bigint, shift: number) {
+    if (shift < 0) {
+        throw new RangeError("Shift amount must be non-negative");
+    }
+    const binary = num.toString(2);
+    const shiftedBinary = '0'.repeat(shift) + binary.slice(0, binary.length - shift);
+    return BigInt(`0b${shiftedBinary}`);
+}
+export const convertEVMChainIdToCoinType = (chainId: bigint) => {
+    return unsignedRightShiftBigInt((BigInt(0x80000000) | chainId), 0)
+}
 
 async function main() {
     const { ignition, ethers } = await hre.network.connect();
@@ -17,7 +27,7 @@ async function main() {
     const address = await dataUrlHook.getAddress();
     const impersonated_signer = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
     //TODO: cointype?
-    const _dataUrlHookAbi = encodeDataUrlAbi("vitalik.eth", "vitalik.eth:dataURL", address, 0);
+    const _dataUrlHookAbi = encodeDataUrlAbi("vitalik.eth", "vitalik.eth:dataURL", address, convertEVMChainIdToCoinType(BigInt(0)));
     const dataUrlHookAbi = new Uint8Array([...DATA_URL_PREFIX, ...getBytes(_dataUrlHookAbi)])
     const publicResolver = new ethers.Contract("0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63", PublicResolverABI, impersonated_signer)
     await publicResolver.setContenthash(namehash("vitalik.eth"), dataUrlHookAbi)

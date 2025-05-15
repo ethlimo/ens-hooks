@@ -1,6 +1,5 @@
 import { BigNumberish, BytesLike, ethers, getBytes, namehash } from "ethers";
 import { DATA_URI_PREFIX, DATA_URL_PREFIX, DataHookAbi } from "./constants.js";
-import { TaggedDataUrlHookRetval } from "./types.js";
 
 export const encodeDataUrlAbi = (name: string, key: string, address: string, coinType: BigNumberish): Uint8Array => {
     return getBytes(HookContractInterface.encodeFunctionData("hook", [namehash(name), key, address, coinType]));

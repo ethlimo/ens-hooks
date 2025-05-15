@@ -31,15 +31,14 @@ contract DataUrlHook is Ownable, ERC165, IExtendedResolver {
         uint256 suffixLength = bytes(":dataURL").length;
         require(keyBytes.length >= suffixLength, "Invalid key");
         require(keyBytes.equals(keyBytes.length - suffixLength, bytes(":dataURL")), "Invalid key");
-
         return bytes(dataUrls[node]);
     }
 
     function setDataURL(bytes32 node, bool updateNonce, string calldata dataUrl) public onlyOwner {
-        dataUrls[node] = dataUrl;
         if(updateNonce) {
             cacheControlNonce[node] = block.timestamp;
         }
+        dataUrls[node] = dataUrl;
     }
 
     function setCacheControlNonce(bytes32 node, uint256 nonce) public onlyOwner {

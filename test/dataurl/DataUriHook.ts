@@ -1,10 +1,9 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import hre from "hardhat";
-import { decodeResolveBytesToString, HookContractInterface } from "../../src/dataurl/encoding.js";
+import { decodeResolveBytesToString } from "../../src/dataurl/encoding.js";
 import { encodeDataUrlAbi } from "../../src/dataurl/encoding.js";
-import { DATA_URI_PREFIX, DATA_URL_PREFIX } from "../../src/dataurl/constants.js";
-import { dnsEncode, getBytes, namehash } from "ethers";
+import { dnsEncode, namehash } from "ethers";
 import { HardhatEthers } from "@nomicfoundation/hardhat-ethers/types";
 import { DataUrlContentHashEncoder } from "../../src/index.js";
 

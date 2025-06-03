@@ -4,7 +4,26 @@ import { DATA_URI_PREFIX, DATA_URL_PREFIX, DataHookAbi } from "./constants.js";
 export const encodeDataUrlAbi = (name: string, key: string, address: string, coinType: BigNumberish): Uint8Array => {
     return getBytes(HookContractInterface.encodeFunctionData("hook", [namehash(name), key, address, coinType]));
 };
+
+export const encodeDataUrlContentHash = (name: string, key: string, address: string, coinType: BigNumberish): Uint8Array => {
+    return new Uint8Array([
+        ...DATA_URL_PREFIX,
+        ...encodeDataUrlAbi(name, key, address, coinType),
+    ]);
+}
+
 export const HookContractInterface = new ethers.Interface(DataHookAbi);
+
+export const encodeDataUriAbi = (uri: string): Uint8Array => {
+    return new TextEncoder().encode(uri)
+}
+
+export const encodeDataUriContentHash = (uri: string): Uint8Array => {
+    return new Uint8Array([
+        ...DATA_URI_PREFIX,
+        ...encodeDataUriAbi(uri),
+    ]);
+}
 
 export const tryDecodeDataUri = (data: Uint8Array): string | null => {
     if (data.length < DATA_URI_PREFIX.length) {

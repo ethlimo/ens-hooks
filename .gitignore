@@ -14,8 +14,11 @@ node_modules
 /coverage.json
 
 # Hardhat Ignition default folder for deployments against a local node
-ignition/deployments
+ignition/deployments/chain-1
+ignition/deployments/chain-31337
 types
 
 .envrc
 /dist
+
+edr-fork-cache

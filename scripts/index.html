@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>eth.limo Example On-Chain Webpage</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+        }
+        header {
+            text-align: center;
+            padding: 2rem 0 1rem 0;
+            background: #222;
+            color: #fff;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        eth.limo Example On-Chain Webpage
+    </header>
+    <div class="container">
+        <p>This is a demonstration of a base64 encoded web page stored on chain via the DataURL spec for ENS content hashes. Assets that are too large to store inline, such as fonts, are externally linked to a CDN. In the future there may be Ethereum RPC compatible chains with extremely cheap SSTORE operations and large transaction sizes that could enable next generation archival storage solutions. This example was created to be a minimal complete example of an on-chain webpage.</p>
+    </div>
+</body>
+</html>

@@ -7,7 +7,7 @@ import hardhatEthersPlugin from "@nomicfoundation/hardhat-ethers";
 import hardhatChaiMatchersPlugin from "@nomicfoundation/hardhat-ethers-chai-matchers";
 import hardhatTypechain from "@nomicfoundation/hardhat-typechain";
 import ignitionEthersPlugin from "@nomicfoundation/hardhat-ignition-ethers";
-import { ConfigurationVariable, SensitiveString } from "hardhat/types/config";
+import { ConfigurationVariable } from "hardhat/types/config";
 import hardhatKeystore from "@nomicfoundation/hardhat-keystore";
 util.inspect.defaultOptions.depth = null;
 
@@ -18,7 +18,7 @@ const config: HardhatUserConfig & { verify: { etherscan: { apiKey: Configuration
       chainType: "l1",
       chainId: 1,
       forking: {
-        url: process.env.ETH_RPC_ENDPOINT as SensitiveString,
+        url: configVariable("ETH_RPC_URL"),
         blockNumber: 22038075
       },
       blockGasLimit: 100000000000,

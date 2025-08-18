@@ -24,7 +24,7 @@ describe("DataUrlHook", function () {
 
   it("should store arbitrary data and retrieve it", async function () {
     const nameHash = namehash("asdf.eth");
-    const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
+    const chainId = 1;
     const { contract } = await deployFixture();
 
     await contract.setDataURL(nameHash, true, "asdf");
@@ -41,7 +41,7 @@ describe("DataUrlHook", function () {
         node: namehash("asdf.eth"),
         key: "eth.asdf:dataURL",
         resolver: owner.address,
-        coinType: 0,
+        coinType: 1,
       }
     })
 

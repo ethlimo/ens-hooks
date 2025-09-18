@@ -27,9 +27,13 @@ jobs:
         # step-security/harden-runner@v2.13.1
       - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a
         with:
-          egress-policy: audit
+          egress-policy: block
           allowed-endpoints: >
             github.com:443
+            api.github.com:443
+            npm.pkg.github.com:443
+            fulcio.sigstore.dev:443
+            rekor.sigstore.dev:443
             registry.npmjs.org:443
             binaries.soliditylang.org:443
         # googleapis/release-please-action@v4.3.0

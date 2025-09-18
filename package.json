@@ -1,5 +1,5 @@
 {
-  "name": "ens-hooks",
+  "name": "@ethlimo/ens-hooks",
   "version": "0.2.0",
   "description": "experimental ENS query environment for ENS hooks draft ENSIPs.",
   "repository": {

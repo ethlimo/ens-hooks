@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/ethlimo/ens-hooks/compare/v0.2.1...v0.2.2) (2025-09-18)
+
+
+### Bug Fixes
+
+* correct package name ([806d196](https://github.com/ethlimo/ens-hooks/commit/806d196c46fc01a5977c7117a3a6f0827347d92a))
+* correct package name ([1607b9c](https://github.com/ethlimo/ens-hooks/commit/1607b9c08e8635a9a205bc63dae0fc0efa5020da))
+
 ## [0.2.1](https://github.com/ethlimo/ens-hooks/compare/v0.2.0...v0.2.1) (2025-09-18)
 
 

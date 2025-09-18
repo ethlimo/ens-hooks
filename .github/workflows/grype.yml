@@ -1,0 +1,37 @@
+name: "Dependency Scan"
+
+on: 
+  pull_request:
+    branches-ignore:
+      - 'release-please--*'
+
+jobs:
+  run:
+    name: SCA
+    if: github.repository == 'ethlimo/ens-hooks'
+    permissions:
+      packages: write
+      contents: read
+    runs-on: "ubuntu-latest"
+    steps:
+        # step-security/harden-runner@v2.13.1
+      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a
+        with:
+          egress-policy: audit
+          allowed-endpoints: >
+            github.com:443
+            grype.anchore.io:443
+        # actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        # anchore/sbom-action@v0.20.5
+      - uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c
+        with:
+          path: "."
+          format: spdx-json
+          output-file: sbom.spdx.json
+        # anchore/scan-action@v6.5.1
+      - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+        with:
+          sbom: sbom.spdx.json
+          fail-build: true
+          severity-cutoff: medium

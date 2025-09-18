@@ -1,0 +1,106 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'contracts/**'
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+name: Pre-Release PR
+jobs:
+  pre_release:
+    if: github.repository == 'ethlimo/ens-hooks'
+    runs-on: ubuntu-latest
+    environment: Development
+    steps:
+        # step-security/harden-runner@v2.13.1
+      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a
+        with:
+          egress-policy: audit
+          allowed-endpoints: >
+            github.com:443
+        # actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0    
+        # dorny/paths-filter@v3.0.2
+        # Only rebuild the SBOM if package manifest files have been modified
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        id: changes
+        with:
+          filters: |
+            pkg:
+              - './package.json'
+              - './package-lock.json'    
+        # googleapis/release-please-action@v4.3.0
+      - uses: googleapis/release-please-action@c2a5a2bd6a758a0937f1ddb1e8950609867ed15c
+        id: release
+        name: Create Pre-Release PR
+        with:
+          skip-github-release: true
+          release-type: node
+        # actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        if: steps.release.outputs.prs_created == 'true' && steps.changes.outputs.pkg == 'true'
+        with:
+          ref: "release-please--branches--main--components--${{ github.event.repository.name }}"
+        id: checkout
+        name: Checkout Code
+        # anchore/sbom-action@v0.20.5
+      - uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c
+        id: generate-sbom
+        name: Generate SBOM
+        if: steps.release.outputs.prs_created == 'true' && steps.changes.outputs.pkg == 'true'
+        with:
+          path: "."
+          format: spdx-json
+          output-file: sbom.spdx.json
+      - name: Setup GPG
+        id: gpg
+        # crazy-max/ghaction-import-gpg@v6.3.0
+        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec
+        if: steps.release.outputs.prs_created == 'true' && steps.changes.outputs.pkg == 'true'
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_config_global: true
+      - name: Update package SBOM
+        if: steps.release.outputs.prs_created == 'true' && steps.changes.outputs.pkg == 'true'
+        run: |
+          cat << 'EOF' > ~/.gpg-pass
+          ${{ secrets.GPG_PASSPHRASE }}
+          EOF
+          chmod 600 ~/.gpg-pass
+          
+          cat << 'EOF' > ~/gpg-with-passphrase.sh
+          #!/bin/bash
+          gpg --batch --no-tty --pinentry-mode loopback --passphrase-file ~/.gpg-pass "$@"
+          EOF
+          chmod +x ~/gpg-with-passphrase.sh
+
+          git config --global user.name "eth.limo bot"
+          git config --global user.email "hello@eth.limo"  
+          git config --global gpg.program ~/gpg-with-passphrase.sh
+
+          git add sbom.spdx.json
+          
+          if ! git diff --cached --quiet; then
+            git commit --signoff -m "chore: update SBOM"
+            git push origin "release-please--branches--main--components--${{ github.event.repository.name }}"
+          else
+            echo "No SBOM changes to commit"
+          fi
+
+          rm -f ~/.gpg-pass
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

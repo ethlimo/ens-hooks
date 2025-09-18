@@ -1,0 +1,65 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'contracts/**'
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'sbom.spdx.json'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  packages: write
+  id-token: write
+
+name: Release
+jobs:
+  release:
+    if: github.repository == 'ethlimo/ens-hooks'
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+        # step-security/harden-runner@v2.13.1
+      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a
+        with:
+          egress-policy: audit
+          allowed-endpoints: >
+            github.com:443
+            registry.npmjs.org:443
+        # googleapis/release-please-action@v4.3.0
+      - uses: googleapis/release-please-action@c2a5a2bd6a758a0937f1ddb1e8950609867ed15c
+        id: release
+        name: Create Release PR
+        with:
+          release-type: node
+          skip-github-pull-request: true 
+        # actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        if: steps.release.outputs.release_created == 'true'
+        id: checkout_release
+        name: Checkout Code (Release)       
+        # actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        if: steps.release.outputs.release_created == 'true'
+        id: setup-node
+        name: Setup Node.js
+        with:
+          node-version: 22
+          registry-url: 'https://npm.pkg.github.com'
+          always-auth: true
+          scope: '@ethlimo'
+      - run: npm ci
+        if: steps.release.outputs.release_created == 'true'
+        id: install-dependencies
+        name: Install Dependencies
+      - run: npm publish --provenance
+        if: steps.release.outputs.release_created == 'true'
+        id: publish
+        name: Publish NPM Package
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

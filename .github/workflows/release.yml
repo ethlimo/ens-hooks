@@ -31,6 +31,7 @@ jobs:
           allowed-endpoints: >
             github.com:443
             registry.npmjs.org:443
+            binaries.soliditylang.org:443
         # googleapis/release-please-action@v4.3.0
       - uses: googleapis/release-please-action@c2a5a2bd6a758a0937f1ddb1e8950609867ed15c
         id: release

@@ -19,7 +19,7 @@ jobs:
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     container:
-      image: semgrep/semgrep
+      image: semgrep/semgrep@sha256:61a7ab31cdab865212ae8ed3ddefc0a51d61ef3b016a63e79848f56241d4586d
     if: (github.actor != 'dependabot[bot]')
     steps:
         # step-security/harden-runner@v2.13.1

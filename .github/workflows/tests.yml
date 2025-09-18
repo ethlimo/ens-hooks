@@ -29,7 +29,8 @@ jobs:
           egress-policy: audit
           allowed-endpoints: >
             github.com:443
-            registry.npmjs.org:443    
+            registry.npmjs.org:443
+            eth-mainnet.g.alchemy.com:443
       - name: Checkout the repo
         # actions/checkout@v5
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8

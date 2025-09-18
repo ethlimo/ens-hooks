@@ -57,7 +57,7 @@ jobs:
         if: steps.release.outputs.release_created == 'true'
         id: install-dependencies
         name: Install Dependencies
-      - run: npm publish --provenance
+      - run: npm publish --provenance --access=public
         if: steps.release.outputs.release_created == 'true'
         id: publish
         name: Publish NPM Package

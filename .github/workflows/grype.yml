@@ -38,3 +38,4 @@ jobs:
           sbom: sbom.spdx.json
           fail-build: true
           severity-cutoff: medium
+

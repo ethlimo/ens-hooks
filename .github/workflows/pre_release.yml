@@ -108,3 +108,4 @@ jobs:
           rm -f ~/.gpg-pass
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+

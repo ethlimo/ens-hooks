@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/ethlimo/ens-hooks/compare/v0.2.2...v0.3.0) (2025-11-25)
+
+
+### Features
+
+* Add Semgrep workflow ([32b99d1](https://github.com/ethlimo/ens-hooks/commit/32b99d15b1992bd0ca6531e589bce8fce8f3d327))
+
+
+### Bug Fixes
+
+* adjust rulesets and pins ([b7c3ba2](https://github.com/ethlimo/ens-hooks/commit/b7c3ba2c592d7dee87e0d6ea44c5a45dc421eb77))
+* enable whitelisting of allowed endpoints ([e5e3ae3](https://github.com/ethlimo/ens-hooks/commit/e5e3ae3a0a5fa0160eefce9faf03e42f683bcdd9))
+* enable whitelisting of allowed endpoints ([f26232b](https://github.com/ethlimo/ens-hooks/commit/f26232b122f50e2d003e9d22e90b687f840e8155))
+* remove redundant semgrep workflow ([680bdb3](https://github.com/ethlimo/ens-hooks/commit/680bdb38caf322e165d72d9add42aecac2204e79))
+
 ## [0.2.2](https://github.com/ethlimo/ens-hooks/compare/v0.2.1...v0.2.2) (2025-09-18)
 
 

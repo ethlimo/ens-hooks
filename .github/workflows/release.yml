@@ -58,7 +58,13 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           always-auth: true
           scope: '@ethlimo'
+      - name: Setup safe-chain
+        run: |
+          npm i -g @aikidosec/safe-chain
+          safe-chain setup-ci          
       - run: npm ci
+        env:
+          SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS: 48      
         if: steps.release.outputs.release_created == 'true'
         id: install-dependencies
         name: Install Dependencies

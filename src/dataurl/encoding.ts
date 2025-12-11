@@ -1,59 +1,85 @@
-import { BigNumberish, BytesLike, ethers, getBytes, namehash } from "ethers";
-import { DATA_URI_PREFIX, DATA_URL_PREFIX, DataHookAbi } from "./constants.js";
+import { BytesLike, ethers, getBytes, namehash, toUtf8Bytes } from "ethers";
+import { HookAbi, IDataResolverAbi, PROTOCODE_ETH_CALLDATA } from "./constants.js";
 
-export const encodeDataUrlAbi = (name: string, key: string, address: string, coinType: BigNumberish): Uint8Array => {
-    return getBytes(HookContractInterface.encodeFunctionData("hook", [namehash(name), key, address, coinType]));
+export const HookInterface = new ethers.Interface(HookAbi);
+export const IDataResolverInterface = new ethers.Interface(IDataResolverAbi);
+
+/**
+ * Encodes the ABI for the virtual hook function, which encodes a contract call to IExtendedResolver at resolverAddress.
+ * @param calldata - The encoded calldata for the IExtendedResolver contract call.
+ * @param resolverAddress - The address of the resolver contract.
+ * @returns The encoded ABI as a Uint8Array.
+ */
+export function encodeHookAbi(calldata: string, resolverAddress: string): string {
+    const ret = HookInterface.encodeFunctionData("hook", [
+        calldata,
+        resolverAddress,
+    ]);
+    return ret
+}
+export type EnsHookReturnValue = {
+    calldata: string;
+    resolverAddress: string;
 };
 
-export const encodeDataUrlContentHash = (name: string, key: string, address: string, coinType: BigNumberish): Uint8Array => {
-    return new Uint8Array([
-        ...DATA_URL_PREFIX,
-        ...encodeDataUrlAbi(name, key, address, coinType),
-    ]);
-}
-
-export const HookContractInterface = new ethers.Interface(DataHookAbi);
-
-export const encodeDataUriAbi = (uri: string): Uint8Array => {
-    return new TextEncoder().encode(uri)
-}
-
-export const encodeDataUriContentHash = (uri: string): Uint8Array => {
-    return new Uint8Array([
-        ...DATA_URI_PREFIX,
-        ...encodeDataUriAbi(uri),
-    ]);
-}
-
-export const tryDecodeDataUri = (data: Uint8Array): string | null => {
-    if (data.length < DATA_URI_PREFIX.length) {
+/**
+ * Decodes the ABI for the virtual hook function, which encodes a contract call to IExtendedResolver at resolverAddress.
+ * @param data - The encoded ABI data to decode.
+ * @param throwOnError - If true, throws an error on failure; otherwise returns null.
+ * @returns An object containing the decoded calldata and resolver address, or null if decoding fails.
+ */
+export function decodeHookAbi(data: string, throwOnError?: boolean): EnsHookReturnValue | null {
+    try {
+        const decoded = HookInterface.decodeFunctionData("hook", data);
+        return {
+            calldata: decoded[0],
+            resolverAddress: decoded[1],
+        };
+    } catch (e) {
+        if (throwOnError) {
+            throw e;
+        }
         return null;
     }
-
-    for (let i = 0; i < DATA_URI_PREFIX.length; i++) {
-        if (data[i] !== DATA_URI_PREFIX[i]) {
-            return null;
-        }
-    }
-    
-    return new TextDecoder().decode(data.slice(DATA_URI_PREFIX.length));
 }
 
-export const tryDecodeDataUrl = (data: Uint8Array): Uint8Array | null => {
-    if (data.length < DATA_URL_PREFIX.length) {
-        return null;
-    }
 
-    for (let i = 0; i < DATA_URL_PREFIX.length; i++) {
-        if (data[i] !== DATA_URL_PREFIX[i]) {
-            return null;
-        }
-    }
-    
-    const encodedAbi = data.slice(DATA_URL_PREFIX.length);
-    return encodedAbi;
+/**
+ * Encodes the ABI for the `data` function of the IDataResolver contract.
+ * @param node - The namehash of the ENS name.
+ * @param key - The key to query (e.g., "data-url:example.eth").
+ * @returns The encoded ABI as a Uint8Array.
+ */
+function encodeDataAbi(node: string, key: string): string {
+    return IDataResolverInterface.encodeFunctionData(
+        "data",
+        [node, key]
+    )
 }
 
-export const decodeResolveBytesToString = (data: BytesLike): string => {
-    return new TextDecoder().decode(Uint8Array.from(getBytes(data)));
+
+/**
+    @param ensname - The ENS name to encode the DataUrl for
+    @param resolverAddress - The address of the resolver to encode the DataUrl for
+    @param node - Optional. The namehash of the ENS name. If not provided, it will be computed from the ENS name.
+    @returns The encoded DataUrl hook as a Uint8Array
+*/
+export function encodeDataUrlHook(ensname: string, resolverAddress: string, node?: string) {
+    if (!node) {
+        node = namehash(ensname);
+    }
+    const calldata = encodeDataAbi(node, "data-url:" + ensname);
+    return encodeHookAbi(calldata, resolverAddress);
+}
+
+/**
+    Encodes a DataUrl hook with correct proto-code for use in contenthash records.
+    @see {@link encodeDataUrlHook}
+*/
+export function encodeDataUrlHookForContenthash(ensname: string, resolverAddress: string, node?: string): string {
+    if (!node) {
+        node = namehash(ensname);
+    }
+    const calldata = encodeDataUrlHook(ensname, resolverAddress, node);
+    return ethers.concat([PROTOCODE_ETH_CALLDATA, calldata]);
 }

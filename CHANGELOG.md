@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/ethlimo/ens-hooks/compare/v0.3.0...v0.4.0) (2025-12-11)
+
+
+### Features
+
+* add ability to override merged commit message ([bfe707c](https://github.com/ethlimo/ens-hooks/commit/bfe707c8649bf586544a69c870188eb62244e9a5))
+* add ability to override merged commit message ([f5921fa](https://github.com/ethlimo/ens-hooks/commit/f5921fa5bc7bc09687611a7744769b9c1b115fc8))
+* add ability to override merged commit message ([65d23c6](https://github.com/ethlimo/ens-hooks/commit/65d23c6031beb0f9b05809e31936b6cabf855693))
+* add ability to override merged commit message ([5c96339](https://github.com/ethlimo/ens-hooks/commit/5c96339bb077332465e10e572f9645db33bd655b))
+* add ability to override merged commit message ([14781e7](https://github.com/ethlimo/ens-hooks/commit/14781e7fe7d19e70182a9fe56af020bfc2664034))
+
 ## [0.3.0](https://github.com/ethlimo/ens-hooks/compare/v0.2.2...v0.3.0) (2025-11-25)
 
 

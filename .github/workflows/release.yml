@@ -36,6 +36,7 @@ jobs:
             rekor.sigstore.dev:443
             registry.npmjs.org:443
             binaries.soliditylang.org:443
+            malware-list.aikido.dev:443
         # googleapis/release-please-action@v4.3.0
       - uses: googleapis/release-please-action@c2a5a2bd6a758a0937f1ddb1e8950609867ed15c
         id: release
@@ -58,7 +59,13 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           always-auth: true
           scope: '@ethlimo'
+      - name: Setup safe-chain
+        run: |
+          npm i -g @aikidosec/safe-chain
+          safe-chain setup-ci          
       - run: npm ci
+        env:
+          SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS: 48      
         if: steps.release.outputs.release_created == 'true'
         id: install-dependencies
         name: Install Dependencies
@@ -68,4 +75,10 @@ jobs:
         name: Publish NPM Package
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Upload SBOM
+        if: steps.release.outputs.release_created == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} ./sbom.spdx.json
+
 

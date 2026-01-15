@@ -43,13 +43,14 @@
     "@nomicfoundation/ignition-core": "^3.0.0",
     "@types/html-minifier-terser": "^7.0.2",
     "@types/mocha": "^10.0.0",
-    "mocha": "11.0.0",
     "hardhat": "^3.0.4",
-    "html-minifier-terser": "^7.2.0"
+    "html-minifier-terser": "^7.2.0",
+    "mocha": "11.0.0"
   },
   "dependencies": {
     "@ensdomains/ens-contracts": "^1.6.0",
     "@nomicfoundation/hardhat-ignition-ethers": "^3.0.0",
+    "@wonderland/interop-addresses": "0.2.0",
     "ethers": "^6.13.5"
   },
   "overrides": {

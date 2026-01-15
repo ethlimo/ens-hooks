@@ -4,14 +4,14 @@ import '@ensdomains/ens-contracts/contracts/resolvers/profiles/ExtendedResolver.
 import './IDataResolver.sol';
 
 contract DataResolver is Ownable, ExtendedResolver, IDataResolver {    
-    mapping(bytes32 node => mapping(string key => bytes data)) private dataStore;
+    mapping(bytes32 node => bytes data) private dataStore;
     
-    function data(bytes32 node, string calldata key) external view returns (bytes memory) {
-        return dataStore[node][key];
+    function data(bytes32 node) external view returns (bytes memory) {
+        return dataStore[node];
     }
 
-    function setData(bytes32 node, string calldata key, bytes calldata value) external onlyOwner {
-        dataStore[node][key] = value;
-        emit DataChanged(node, key, key, value);
+    function setData(bytes32 node, bytes calldata value) external onlyOwner {
+        dataStore[node] = value;
+        emit DataChanged(node, keccak256(value));
     }
 }

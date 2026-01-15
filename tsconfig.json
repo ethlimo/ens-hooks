@@ -10,5 +10,14 @@
     "outDir": "./dist",
     "moduleResolution": "nodenext",
     "resolveJsonModule": true,
-  }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "scripts/**/*",
+    "test/**/*",
+    "dist",
+    "node_modules"
+  ]
 }

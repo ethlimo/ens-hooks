@@ -22,6 +22,7 @@ export {
     decodeHookString,
     computeSelector,
     parseFunctionCall,
+    parseFunctionSignature,
     encodeERC7930Target,
     decodeERC7930Target,
     isEIP8121Hook,

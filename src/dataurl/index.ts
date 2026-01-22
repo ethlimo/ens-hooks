@@ -3,6 +3,7 @@ import {
     DecodedEIP8121Hook, 
     computeSelector,
     parseFunctionCall,
+    parseFunctionSignature,
     isEIP8121Hook,
     isEIP8121HookString,
     decodeHook,
@@ -18,7 +19,7 @@ import { TrustedTargets, verifyTrustedTarget } from "./trust.js";
  * Map of chain IDs to Ethereum providers.
  * Callers must provide this to enable cross-chain hook execution.
  */
-export type ProviderMap = Map<number, Provider>;
+export type ProviderMap = Map<number | bigint, Provider>;
 
 /**
  * Result of successful hook execution.
@@ -53,7 +54,10 @@ export interface HookValidationResult {
 // ============================================================================
 
 /**
- * Validates an EIP-8121 hook by verifying the selector matches the function signature.
+ * Validates an EIP-8121 hook by verifying the selector matches the function signature
+ * and ensuring parameters meet requirements:
+ * - 1 or 2 parameters allowed
+ * - All parameters must be bytes32 type
  * @param hook - The decoded hook to validate
  * @returns Validation result with isValid flag and optional error message
  */
@@ -76,6 +80,33 @@ export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
                 isValid: false,
                 error: `Selector mismatch: expected ${expectedSelector}, got ${hook.functionSelector}`
             };
+        }
+        
+        // Parse and validate parameters
+        const params = parseFunctionSignature(functionSignature);
+        if (params === null) {
+            return {
+                isValid: false,
+                error: "Failed to parse function signature"
+            };
+        }
+        
+        // Enforce parameter count: 1 or 2 parameters allowed
+        if (params.length < 1 || params.length > 2) {
+            return {
+                isValid: false,
+                error: `Invalid parameter count: expected 1 or 2 parameters, got ${params.length}`
+            };
+        }
+        
+        // Enforce bytes32 type for all parameters
+        for (let i = 0; i < params.length; i++) {
+            if (params[i] !== 'bytes32') {
+                return {
+                    isValid: false,
+                    error: `Invalid parameter type at position ${i}: expected bytes32, got ${params[i]}`
+                };
+            }
         }
         
         return { isValid: true };
@@ -143,6 +174,22 @@ export function decodeResult(resultBytes: string, returnType: string): any {
  */
 export interface ExecuteHookOptions {
     /**
+     * The bytes32 nodehash parameter to pass to the function (required)
+     */
+    nodehash: string;
+    
+    /**
+     * Optional bytes32 cacheNonce parameter for cache-busting.
+     * Only has semantic functionality - changes the contenthash hash for external readers.
+     */
+    cacheNonce?: string;
+    
+    /**
+     * Map of chain IDs to providers for cross-chain calls (required)
+     */
+    providerMap: ProviderMap;
+    
+    /**
      * Optional trusted targets configuration.
      * If provided, the hook target will be verified against this list.
      */
@@ -158,19 +205,17 @@ export interface ExecuteHookOptions {
 
 /**
  * Executes an EIP-8121 hook by calling the target function directly.
- * This implementation supports functions with a single bytes32 nodehash parameter.
+ * This implementation supports functions with up to 2 bytes32 parameters:
+ * - nodehash (required): The primary bytes32 parameter
+ * - cacheNonce (optional): A bytes32 cache-busting parameter
  * 
  * @param hook - The decoded EIP-8121 hook
- * @param nodehash - The bytes32 nodehash parameter to pass to the function
- * @param providerMap - Map of chain IDs to providers for cross-chain calls
- * @param options - Optional execution options including trust verification
+ * @param options - Execution options including nodehash, optional cacheNonce, providerMap, and trust verification
  * @returns The decoded result or an error
  */
 export async function executeHook(
     hook: DecodedEIP8121Hook,
-    nodehash: string,
-    providerMap: ProviderMap,
-    options?: ExecuteHookOptions
+    options: ExecuteHookOptions
 ): Promise<ExecutionResult> {
     try {
         const validation = validateHook(hook);
@@ -182,7 +227,7 @@ export async function executeHook(
             };
         }
         
-        if (options?.trustedTargets) {
+        if (options.trustedTargets) {
             const isTrusted = verifyTrustedTarget(hook.target, options.trustedTargets);
             if (!isTrusted) {
                 const errorMsg = `Untrusted target: ${hook.target.address} on chain ${hook.target.chainId}`;
@@ -197,7 +242,7 @@ export async function executeHook(
             }
         }
         
-        const provider = providerMap.get(hook.target.chainId);
+        const provider = options.providerMap.get(hook.target.chainId);
         if (!provider) {
             return {
                 _tag: "HookExecutionError",
@@ -227,7 +272,13 @@ export async function executeHook(
             provider
         );
         
-        const resultBytes = await contract[functionName](nodehash);
+        // Build parameters array: nodehash is required, cacheNonce is optional
+        const params = [options.nodehash];
+        if (options.cacheNonce !== undefined) {
+            params.push(options.cacheNonce);
+        }
+        
+        const resultBytes = await contract[functionName](...params);
         
         const decodedResult = decodeResult(resultBytes, hook.returnType);
         

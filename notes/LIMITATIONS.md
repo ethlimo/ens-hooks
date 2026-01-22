@@ -4,8 +4,12 @@ Focused implementation of EIP-8121 for contenthash resolution with intentional s
 
 ## Scope Restrictions
 
-### Single-Parameter Functions Only
-Target functions accept only `bytes32 node` parameter. Designed for contenthash resolution, not general-purpose metadata queries requiring multi-parameter signatures.
+### Up to Two bytes32 Parameters
+Target functions accept 1-2 `bytes32` parameters:
+- **nodehash** (required): Primary node identifier
+- **cacheNonce** (optional): Cache-busting parameter
+
+Designed for contenthash resolution with optional cache control. Not general-purpose metadata queries requiring complex multi-parameter signatures or non-bytes32 types.
 
 ### EIP-155 Chains Only
 ERC-7930 addresses limited to EVM chains via `@wonderland/interop-addresses` (v0.2.0). Non-EVM chains (Solana, Bitcoin, etc.) not supported.
@@ -25,8 +29,9 @@ Only `bytes` return type supported. No complex tuples, nested arrays, or multi-v
 - ERC-7930 interoperable addresses (EIP-155 only)
 - Bytes and string encoding formats
 - Multi-chain execution
+- 1-2 bytes32 parameter functions with validation
 - Optional trust verification (array/set/function-based)
 
 ## Not Supported
 
-Multi-parameter function calls, recursive hooks, complex return types, non-EVM chains.
+Functions with 3+ parameters, non-bytes32 parameter types, recursive hooks, complex return types, non-EVM chains.

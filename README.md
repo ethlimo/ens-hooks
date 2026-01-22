@@ -63,11 +63,10 @@ const providerMap: ProviderMap = new Map([
 ]);
 
 // Execute the hook
-const result = await executeHook(
-    hook!,
-    namehash("example.eth"),
+const result = await executeHook(hook!, {
+    nodehash: namehash("example.eth"),
     providerMap
-);
+});
 
 if (result._tag === "HookExecutionResult") {
     console.log("Result:", result.data);
@@ -75,6 +74,33 @@ if (result._tag === "HookExecutionResult") {
     console.error("Error:", result.message);
 }
 ```
+
+### Multi-Parameter Hooks
+
+Hooks can accept up to 2 bytes32 parameters:
+- **nodehash** (required): The primary node identifier
+- **cacheNonce** (optional): Cache-busting parameter that changes the contenthash hash
+
+```typescript
+import { executeHook, computeSelector } from '@ethlimo/ens-hooks';
+
+// Create hook with 2-parameter function signature
+const hook = await encodeHook(
+    computeSelector("dataWithOptions(bytes32,bytes32)"),
+    "dataWithOptions(bytes32,bytes32)",
+    "(bytes)",
+    { chainId: 1, address: "0x..." }
+);
+
+// Execute with optional cacheNonce
+const result = await executeHook(await decodeHook(hook)!, {
+    nodehash: namehash("example.eth"),
+    cacheNonce: "0x" + "0".repeat(64), // Any bytes32 value
+    providerMap
+});
+```
+
+The `cacheNonce` parameter is semantically ignored by most contracts but changes the function signature, which affects the resulting contenthash hash for external readers.
 
 ### Trust Verification
 
@@ -93,12 +119,11 @@ const trustedTargets = createTrustedTargets([
 ]);
 
 // Execute with trust verification
-const result = await executeHook(
-    hook!,
-    namehash("example.eth"),
+const result = await executeHook(hook!, {
+    nodehash: namehash("example.eth"),
     providerMap,
-    { trustedTargets }
-);
+    trustedTargets
+});
 ```
 
 Three verification modes supported:
@@ -115,8 +140,13 @@ Three verification modes supported:
 - `decodeHookString()` - Decode hook (string format)
 
 ### Hook Execution
-- `executeHook()` - Execute hook on target chain
-- `validateHook()` - Validate selector matches signature
+- `executeHook(hook, options)` - Execute hook on target chain with options object:
+  - `nodehash`: bytes32 node identifier (required)
+  - `cacheNonce`: bytes32 cache-busting parameter (optional)
+  - `providerMap`: Map of chain IDs to providers (required)
+  - `trustedTargets`: Trust verification config (optional)
+  - `throwOnUntrusted`: Throw on untrusted target vs return error (optional)
+- `validateHook()` - Validate selector, parameter count (1-2), and types (bytes32 only)
 - `detectAndDecodeHook()` - Auto-detect format and decode
 
 ### Contenthash Support
@@ -136,7 +166,7 @@ Three verification modes supported:
 npm test
 ```
 
-56 tests covering encoding, decoding, execution, and trust verification.
+60 tests covering encoding, decoding, execution, multi-parameter hooks, and trust verification.
 
 ## Specification
 

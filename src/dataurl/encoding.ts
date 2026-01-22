@@ -165,6 +165,27 @@ export function parseFunctionCall(functionCall: string): string {
 }
 
 /**
+ * Parses a function signature to extract parameter types.
+ * @param functionSignature - The function signature (e.g., "data(bytes32)" or "dataWithOptions(bytes32,bytes32)")
+ * @returns Array of parameter types, or null if parsing fails
+ */
+export function parseFunctionSignature(functionSignature: string): string[] | null {
+    const match = functionSignature.match(/^\w+\(([^)]*)\)$/);
+    if (!match) {
+        return null;
+    }
+    
+    const paramsString = match[1].trim();
+    if (!paramsString) {
+        return [];
+    }
+    
+    // Split by comma, handling nested types (though we only support bytes32)
+    const params = paramsString.split(',').map(p => p.trim()).filter(p => p.length > 0);
+    return params;
+}
+
+/**
  * Encodes an EIP-8121 hook in bytes format (ABI-encoded).
  * @param functionSelector - The 4-byte function selector
  * @param functionCall - The function call string (e.g., "data(bytes32)")

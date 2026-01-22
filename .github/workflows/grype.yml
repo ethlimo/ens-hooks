@@ -29,5 +29,5 @@ jobs:
         with:
           path: "."
           fail-build: true
-          severity-cutoff: medium
+          severity-cutoff: high
 

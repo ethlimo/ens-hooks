@@ -1,9 +1,19 @@
-export const DataHookAbi = [
-    "function hook(bytes32 node, string calldata key, address resolver, uint256 coinType) public returns (string memory)"
+import { ethers } from "ethers";
+
+// EIP-8121: Hook function signature with 4 parameters
+export const HookAbi = [
+    "function hook(bytes4 functionSelector, string calldata functionCall, string calldata returnType, bytes calldata target)"
 ];
 
-//temporary values
-//export const DATA_URI_PREFIX = ethers.getBytes("0x3000f2");
-export const DATA_URI_PREFIX = new Uint8Array([48, 0, 242]);
-//export const DATA_URL_PREFIX = ethers.getBytes("0x30009b");
-export const DATA_URL_PREFIX = new Uint8Array([48, 0, 155]);
+// EIP-8121: Hook selector constant
+export const HOOK_SELECTOR = "0x396b32a0";
+
+//ENSIP-24
+export const IDataResolverAbi = [
+    "function data(bytes32 node) external view returns (bytes memory)",
+    "event DataChanged(bytes32 indexed node, bytes32 indexed dataHash)"
+]
+
+// Protocol codes for contenthash (kept for plain URI support)
+export const PROTOCODE_ETH_CALLDATA = ethers.getBytes("0x30009b")
+export const PROTOCODE_CONTENTHASH_URI = ethers.getBytes("0x3000f2")

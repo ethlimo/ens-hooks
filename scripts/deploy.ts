@@ -1,26 +1,53 @@
 import hre from "hardhat";
-import { encodeDataUriContentHash, encodeDataUrlContentHash } from "../src/dataurl/encoding.js";
-import { namehash, Provider } from "ethers";
-import { DataUrlHook__factory } from "../types/ethers-contracts/index.js";
-import { deployFixture, getResolver, overrideContentHash } from "./deployFixture.js";
-import { getBase64Payload } from "./getBase64Payload.js";
-async function main() {
-    const connection = await hre.network.connect();
-    const ethers = connection.ethers;
-    const { dataUrlHook } = await deployFixture(connection.ignition);
-    const signer = (await ethers.getSigners())[0];
-    const contract = DataUrlHook__factory.connect(await dataUrlHook.getAddress(), signer)
-    const address = await dataUrlHook.getAddress();
-    const dataUrlHookAbi = encodeDataUrlContentHash("vitalik.eth", "eth.vitalik:dataURL", address, BigInt(60));
-    const { owner: vitalikOwner, resolver: vitalikResolver } = await getResolver("vitalik.eth", signer.provider as Provider);
-    const impersonatedSignerVitalik = await ethers.getImpersonatedSigner(vitalikOwner);
-    await overrideContentHash(impersonatedSignerVitalik, vitalikResolver, "vitalik.eth", dataUrlHookAbi);
-    await contract.setDataURL(namehash("vitalik.eth"), true, await getBase64Payload())
+import { namehash } from "ethers";
+import TestResolversModule from "../ignition/modules/DataResolver.js";
 
-    const { owner: nickOwner, resolver: nickResolver } = await getResolver("nick.eth", signer.provider as Provider);
-    const impersonatedSignerNick = await ethers.getImpersonatedSigner(nickOwner);
-    const dataUriHookAbi = encodeDataUriContentHash("https://www.google.com");
-    await overrideContentHash(impersonatedSignerNick, nickResolver, "nick.eth", dataUriHookAbi);
+/**
+ * Deploy test resolver contracts to localhost hardhat node.
+ * Deploys both DataResolver and MultiParamResolver for testing.
+ */
+async function main() {
+    console.log("Deploying test resolvers to localhost...");
+    
+    const connection = await hre.network.connect() as any;
+    const ethers = connection.ethers;
+    
+    // Deploy contracts using Hardhat Ignition
+    const { dataResolver, multiParamResolver } = await connection.ignition.deploy(TestResolversModule);
+    
+    const dataResolverAddress = await dataResolver.getAddress();
+    const multiParamResolverAddress = await multiParamResolver.getAddress();
+    
+    console.log("\nDeployment successful!");
+    console.log("\nContract Addresses:");
+    console.log("  DataResolver:       ", dataResolverAddress);
+    console.log("  MultiParamResolver: ", multiParamResolverAddress);
+    
+    // Get signer for initial setup
+    const [signer] = await ethers.getSigners();
+    console.log("\nDeployer address:", signer.address);
+    
+    // Setup test data
+    const testNode = namehash("test.eth");
+    const testData = ethers.toUtf8Bytes("Hello from EIP-8121!");
+    const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [testData]);
+    
+    console.log("\nSetting up test data...");
+    const tx1 = await dataResolver.setData(testNode, encodedData);
+    await tx1.wait();
+    console.log("  DataResolver test data set");
+    
+    const tx2 = await multiParamResolver.setData(testNode, encodedData);
+    await tx2.wait();
+    console.log("  MultiParamResolver test data set");
+    
+    console.log("\nSetup complete! Ready for testing.");
+    console.log("\nExample usage:");
+    console.log(`  Node: ${testNode}`);
+    console.log(`  Network: localhost (chain ID: ${(await ethers.provider.getNetwork()).chainId})`);
 }
 
-main().catch(console.error)
+main().catch((error) => {
+    console.error("Deployment failed:", error);
+    process.exit(1);
+});

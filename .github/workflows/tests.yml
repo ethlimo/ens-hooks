@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/tests.yml'
+      - '.github/workflows/grype.yml'
       - 'contracts/**'
       - 'ignition/**'
       - 'scripts/**'
@@ -17,8 +18,13 @@ on:
       - 'release-please--*'
 
 jobs:
+  lockfile_scan:
+    if: github.repository == 'ethlimo/ens-hooks'
+    name: Lockfile Scan
+    uses: ./.github/workflows/grype.yml
   tests:
     if: github.repository == 'ethlimo/ens-hooks'
+    needs: lockfile_scan
     name: Test Suite
     environment: Development
     runs-on: ubuntu-latest
@@ -32,6 +38,7 @@ jobs:
             registry.npmjs.org:443
             eth-mainnet.g.alchemy.com:443
             binaries.soliditylang.org:443
+            malware-list.aikido.dev:443
       - name: Checkout the repo
         # actions/checkout@v5
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -40,7 +47,13 @@ jobs:
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444       
         with:
           node-version: '22'
+      - name: Setup safe-chain
+        run: |
+          npm i -g @aikidosec/safe-chain
+          safe-chain setup-ci          
       - run: npm ci
+        env:
+          SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS: 48      
       - run: npm test
         env:
           NODE_OPTIONS: --no-experimental-strip-types

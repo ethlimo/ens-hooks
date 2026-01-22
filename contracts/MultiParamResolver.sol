@@ -12,24 +12,14 @@ contract MultiParamResolver {
     event DataChanged(bytes32 indexed node, bytes32 hash);
     
     /**
-     * @dev Single-parameter version for backward compatibility testing.
-     * @param node The node hash to query
-     * @return The stored data for the node
-     */
-    function data(bytes32 node) external view returns (bytes memory) {
-        return dataStore[node];
-    }
-    
-    /**
      * @dev Two-parameter version with cacheNonce parameter.
      * The cacheNonce parameter is semantically ignored but changes the function signature,
      * which affects the contenthash hash for external readers.
      * @param node The node hash to query
-     * @param cacheNonce Cache-busting nonce (ignored in execution)
+     * @param _cacheNonce Cache-busting nonce (ignored in execution)
      * @return The stored data for the node
      */
-    function dataWithOptions(bytes32 node, bytes32 cacheNonce) external view returns (bytes memory) {
-        // cacheNonce is intentionally unused - it only serves to change the function signature
+    function dataWithOptions(bytes32 node, bytes32 _cacheNonce) external view returns (bytes memory) {
         return dataStore[node];
     }
     

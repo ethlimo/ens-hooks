@@ -266,43 +266,6 @@ describe("MultiParamResolver - Two-Parameter Hooks", function () {
         providerMap.set(Number(chainId), ethers.provider);
     });
 
-    it("should execute single-parameter hook (backward compatibility)", async function () {
-        const { executeHook } = await import("../../src/index.js");
-        
-        const testData = ethers.toUtf8Bytes("Single param data");
-        // Store ABI-encoded bytes so decodeResult can decode them
-        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [testData]);
-        const node = namehash("test.eth");
-        await multiParamResolver.setData(node, encoded);
-        
-        const functionSelector = computeSelector("data(bytes32)");
-        const functionCall = "data(bytes32)";
-        const returnType = "(bytes)";
-        const target: EIP8121Target = {
-            chainId: Number(chainId),
-            address: await multiParamResolver.getAddress()
-        };
-        
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
-        const decoded = await decodeHook(hookData);
-        
-        expect(decoded).to.not.be.null;
-        
-        const result = await executeHook(decoded!, {
-            nodehash: node,
-            providerMap
-        });
-        
-        if (result._tag === "HookExecutionError") {
-            console.log("Error:", result.message);
-        }
-        
-        expect(result._tag).to.equal("HookExecutionResult");
-        if (result._tag === "HookExecutionResult") {
-            expect(ethers.hexlify(result.data)).to.equal(ethers.hexlify(testData));
-        }
-    });
-
     it("should execute two-parameter hook with cacheNonce", async function () {
         const { executeHook } = await import("../../src/index.js");
         

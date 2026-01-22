@@ -26,7 +26,9 @@
     "clean": "rm -rf cache/ edr-fork-cache/ ignition/deployments/chain-1 artifacts/ dist",
     "test": "npx hardhat test",
     "node": "npx hardhat node --network hardhat",
-    "run-deploy-localhost": "npx hardhat run scripts/deploy.ts --network localhost"
+    "deploy": "npx hardhat run scripts/deploy.ts --network localhost",
+    "deploy-testnet": "npx hardhat run scripts/deploy-testnet.ts --network sepolia",
+    "test-deployed": "npx hardhat run scripts/test-deployed.ts --network localhost"
   },
   "author": "eth.limo team",
   "license": "MIT",

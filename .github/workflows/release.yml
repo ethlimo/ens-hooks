@@ -71,6 +71,7 @@ jobs:
         id: install-dependencies
         name: Install Dependencies
       - run: npm publish --provenance --access=public
+        # Only publish if a release was created
         if: steps.release.outputs.release_created == 'true'
         id: publish
         name: Publish NPM Package

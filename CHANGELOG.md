@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.0](https://github.com/ethlimo/ens-hooks/compare/v0.3.0...v1.0.0) (2026-01-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* implement EIP-8121 hooks with ERC-7930 addresses and single-parameter data()
+* encoding and decoding, implement new standard for hooks
+
+### Features
+
+* add ability to override merged commit message ([bfe707c](https://github.com/ethlimo/ens-hooks/commit/bfe707c8649bf586544a69c870188eb62244e9a5))
+* add ability to override merged commit message ([f5921fa](https://github.com/ethlimo/ens-hooks/commit/f5921fa5bc7bc09687611a7744769b9c1b115fc8))
+* add ability to override merged commit message ([65d23c6](https://github.com/ethlimo/ens-hooks/commit/65d23c6031beb0f9b05809e31936b6cabf855693))
+* add ability to override merged commit message ([5c96339](https://github.com/ethlimo/ens-hooks/commit/5c96339bb077332465e10e572f9645db33bd655b))
+* add ability to override merged commit message ([14781e7](https://github.com/ethlimo/ens-hooks/commit/14781e7fe7d19e70182a9fe56af020bfc2664034))
+* add multi-parameter hook support with optional cacheNonce ([b30f2ab](https://github.com/ethlimo/ens-hooks/commit/b30f2ab025205fa65aa029a23340481dc0e032ba))
+* add optional second parameter support for dataurl hooks ([ec44d2e](https://github.com/ethlimo/ens-hooks/commit/ec44d2e4c6323c657a6efbc9aaed567dbec85c0b))
+* implement EIP-8121 hooks with ERC-7930 addresses and single-parameter data() ([6d64902](https://github.com/ethlimo/ens-hooks/commit/6d64902da6c5e682d4bf15d92e6022858eb9009e))
+
+
+### Code Refactoring
+
+* encoding and decoding, implement new standard for hooks ([6da434c](https://github.com/ethlimo/ens-hooks/commit/6da434cb96e76a58c4936e44d35fd6e825cf8575))
+
 ## [0.3.0](https://github.com/ethlimo/ens-hooks/compare/v0.2.2...v0.3.0) (2025-11-25)
 
 

@@ -5,8 +5,9 @@ import {
     encodeEIP8121HookForContenthash,
     type EIP8121Target 
 } from "../src/index.js";
-import { namehash } from "ethers";
-import TestResolversModule from "../ignition/modules/DataResolver.js";
+import { ethers, namehash } from "ethers";
+import DataResolverModule from "../ignition/modules/DataResolver.js";
+import MultiParamResolverModule from "../ignition/modules/MultiParamResolver.js";
 
 /**
  * Deploy resolver contracts to a testnet and provide instructions for setup.
@@ -17,6 +18,25 @@ import TestResolversModule from "../ignition/modules/DataResolver.js";
  * 3. Encodes hooks for both contracts
  * 4. Outputs instructions for setting ENS contenthash
  */
+
+async function getEnsNameResolver(ensName: string, signer: ethers.Signer) {
+    const registryAddress = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"; // ENS Registry
+    const registryAbi = [
+        "function resolver(bytes32 node) view returns (address)"
+    ];
+    const resolverAbi = [
+        "function setContenthash(bytes32 node, bytes calldata hash) external",
+        "function contenthash(bytes32 node) view returns (bytes memory)"
+    ];
+    
+    const registryContract = new ethers.Contract(registryAddress, registryAbi, signer);
+    const node = namehash(ensName);
+    const resolverAddress = await registryContract.resolver(node);
+    const resolverContract = new ethers.Contract(resolverAddress, resolverAbi, signer);
+    
+    return resolverContract;
+}
+
 async function main() {
     console.log("Deploying resolver contracts to testnet...\n");
     
@@ -36,8 +56,10 @@ async function main() {
     console.log();
     
     // Deploy contracts
-    console.log("Deploying contracts...");
-    const { dataResolver, multiParamResolver } = await (connection as any).ignition.deploy(TestResolversModule);
+    console.log("Deploying DataResolver...");
+    const { dataResolver } = await (connection as any).ignition.deploy(DataResolverModule);
+    console.log("Deploying MultiParamResolver...");
+    const { multiParamResolver } = await (connection as any).ignition.deploy(MultiParamResolverModule);
     
     const dataResolverAddress = await dataResolver.getAddress();
     const multiParamResolverAddress = await multiParamResolver.getAddress();
@@ -50,15 +72,19 @@ async function main() {
     
     // Setup test data
     console.log("Setting up test data...");
-    const testNode = namehash("test.eth");
+    const testNode = "weaken-home-truth-plan-9.eth";
     const testData = ethers.toUtf8Bytes("Hello from EIP-8121 on testnet!");
     const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [testData]);
     
-    const tx1 = await dataResolver.setData(testNode, encodedData);
+    const tx1ensname = "singleparam-" + testNode;
+    const tx1namehash = namehash(tx1ensname);
+    const tx1 = await dataResolver.setData(tx1namehash, encodedData);
     await tx1.wait();
     console.log("  DataResolver test data set");
     
-    const tx2 = await multiParamResolver.setData(testNode, encodedData);
+    const tx2ensname = "multiparam-" + testNode;
+    const tx2namehash = namehash(tx2ensname);
+    const tx2 = await multiParamResolver.setData(tx2namehash, encodedData);
     await tx2.wait();
     console.log("  MultiParamResolver test data set");
     console.log();
@@ -88,6 +114,7 @@ async function main() {
     console.log("Function Signature:", "data(bytes32)");
     console.log("Hook Data:", hook1Data);
     console.log("Contenthash:", ethers.hexlify(contenthash1));
+
     console.log();
     
     // Two-parameter hook
@@ -139,6 +166,12 @@ async function main() {
     console.log("=".repeat(80));
     console.log("Deployment complete!");
     console.log("=".repeat(80));
+
+    const resolver1 = await getEnsNameResolver("singleparam-" + testNode, deployer);
+    await resolver1.setContenthash(namehash("singleparam-" + testNode), ethers.hexlify(contenthash1));
+
+    const resolver2 = await getEnsNameResolver("multiparam-" + testNode, deployer);
+    await resolver2.setContenthash(namehash("multiparam-" + testNode), ethers.hexlify(contenthash2));
 }
 
 main().catch((error) => {

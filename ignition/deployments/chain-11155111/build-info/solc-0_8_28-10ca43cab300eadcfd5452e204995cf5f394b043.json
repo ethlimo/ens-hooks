@@ -1,0 +1,55 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-10ca43cab300eadcfd5452e204995cf5f394b043",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/DataResolver.sol": "project/contracts/DataResolver.sol",
+    "contracts/IDataResolver.sol": "project/contracts/IDataResolver.sol",
+    "contracts/MultiParamResolver.sol": "project/contracts/MultiParamResolver.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": [
+        "project/:@ensdomains/ens-contracts/=npm/@ensdomains/ens-contracts@1.6.0/",
+        "project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@4.9.3/"
+      ]
+    },
+    "sources": {
+      "npm/@ensdomains/ens-contracts@1.6.0/contracts/resolvers/profiles/ExtendedResolver.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.4;\n\ncontract ExtendedResolver {\n    function resolve(\n        bytes memory /* name */,\n        bytes memory data\n    ) external view returns (bytes memory) {\n        (bool success, bytes memory result) = address(this).staticcall(data);\n        if (success) {\n            return result;\n        } else {\n            // Revert with the reason provided by the call\n            assembly {\n                revert(add(result, 0x20), mload(result))\n            }\n        }\n    }\n}\n"
+      },
+      "npm/@openzeppelin/contracts@4.9.3/access/Ownable.sol": {
+        "content": "// SPDX-License-Identifier: MIT\n// OpenZeppelin Contracts (last updated v4.9.0) (access/Ownable.sol)\n\npragma solidity ^0.8.0;\n\nimport \"../utils/Context.sol\";\n\n/**\n * @dev Contract module which provides a basic access control mechanism, where\n * there is an account (an owner) that can be granted exclusive access to\n * specific functions.\n *\n * By default, the owner account will be the one that deploys the contract. This\n * can later be changed with {transferOwnership}.\n *\n * This module is used through inheritance. It will make available the modifier\n * `onlyOwner`, which can be applied to your functions to restrict their use to\n * the owner.\n */\nabstract contract Ownable is Context {\n    address private _owner;\n\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\n\n    /**\n     * @dev Initializes the contract setting the deployer as the initial owner.\n     */\n    constructor() {\n        _transferOwnership(_msgSender());\n    }\n\n    /**\n     * @dev Throws if called by any account other than the owner.\n     */\n    modifier onlyOwner() {\n        _checkOwner();\n        _;\n    }\n\n    /**\n     * @dev Returns the address of the current owner.\n     */\n    function owner() public view virtual returns (address) {\n        return _owner;\n    }\n\n    /**\n     * @dev Throws if the sender is not the owner.\n     */\n    function _checkOwner() internal view virtual {\n        require(owner() == _msgSender(), \"Ownable: caller is not the owner\");\n    }\n\n    /**\n     * @dev Leaves the contract without owner. It will not be possible to call\n     * `onlyOwner` functions. Can only be called by the current owner.\n     *\n     * NOTE: Renouncing ownership will leave the contract without an owner,\n     * thereby disabling any functionality that is only available to the owner.\n     */\n    function renounceOwnership() public virtual onlyOwner {\n        _transferOwnership(address(0));\n    }\n\n    /**\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\n     * Can only be called by the current owner.\n     */\n    function transferOwnership(address newOwner) public virtual onlyOwner {\n        require(newOwner != address(0), \"Ownable: new owner is the zero address\");\n        _transferOwnership(newOwner);\n    }\n\n    /**\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\n     * Internal function without access restriction.\n     */\n    function _transferOwnership(address newOwner) internal virtual {\n        address oldOwner = _owner;\n        _owner = newOwner;\n        emit OwnershipTransferred(oldOwner, newOwner);\n    }\n}\n"
+      },
+      "npm/@openzeppelin/contracts@4.9.3/utils/Context.sol": {
+        "content": "// SPDX-License-Identifier: MIT\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\n\npragma solidity ^0.8.0;\n\n/**\n * @dev Provides information about the current execution context, including the\n * sender of the transaction and its data. While these are generally available\n * via msg.sender and msg.data, they should not be accessed in such a direct\n * manner, since when dealing with meta-transactions the account sending and\n * paying for execution may not be the actual sender (as far as an application\n * is concerned).\n *\n * This contract is only required for intermediate, library-like contracts.\n */\nabstract contract Context {\n    function _msgSender() internal view virtual returns (address) {\n        return msg.sender;\n    }\n\n    function _msgData() internal view virtual returns (bytes calldata) {\n        return msg.data;\n    }\n}\n"
+      },
+      "project/contracts/DataResolver.sol": {
+        "content": "pragma solidity ^0.8.28;\nimport '@openzeppelin/contracts/access/Ownable.sol';\nimport '@ensdomains/ens-contracts/contracts/resolvers/profiles/ExtendedResolver.sol';\nimport './IDataResolver.sol';\n\ncontract DataResolver is Ownable, ExtendedResolver, IDataResolver {    \n    mapping(bytes32 node => bytes data) private dataStore;\n    \n    function data(bytes32 node) external view returns (bytes memory) {\n        return dataStore[node];\n    }\n\n    function setData(bytes32 node, bytes calldata value) external onlyOwner {\n        dataStore[node] = value;\n        emit DataChanged(node, keccak256(value));\n    }\n}"
+      },
+      "project/contracts/IDataResolver.sol": {
+        "content": "pragma solidity ^0.8.28;\n/// @dev Interface selector: `0xecbfada3`\ninterface IDataResolver {\n    /// @notice For a specific `node`, get the data.\n    /// @param node The node (namehash) for which data is being fetched.\n    /// @return The associated arbitrary `bytes` data.\n    function data(bytes32 node) external view returns (bytes memory);\n\n    /// @notice For a specific `node`, the data has changed.\n    event DataChanged(bytes32 indexed node, bytes32 indexed dataHash);\n}\n"
+      },
+      "project/contracts/MultiParamResolver.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\n/**\n * @title MultiParamResolver\n * @dev Test contract for validating EIP-8121 hooks with multiple parameters.\n * Supports both single-parameter and two-parameter function calls.\n */\ncontract MultiParamResolver {\n    mapping(bytes32 node => bytes data) private dataStore;\n    \n    event DataChanged(bytes32 indexed node, bytes32 hash);\n    \n    /**\n     * @dev Two-parameter version with cacheNonce parameter.\n     * The cacheNonce parameter is semantically ignored but changes the function signature,\n     * which affects the contenthash hash for external readers.\n     * @param node The node hash to query\n     * @param _cacheNonce Cache-busting nonce (ignored in execution)\n     * @return The stored data for the node\n     */\n    function dataWithOptions(bytes32 node, bytes32 _cacheNonce) external view returns (bytes memory) {\n        return dataStore[node];\n    }\n    \n    /**\n     * @dev Set data for a node (for testing purposes).\n     * @param node The node hash to set\n     * @param value The data to store\n     */\n    function setData(bytes32 node, bytes calldata value) external {\n        dataStore[node] = value;\n        emit DataChanged(node, keccak256(value));\n    }\n}\n"
+      }
+    }
+  }
+}

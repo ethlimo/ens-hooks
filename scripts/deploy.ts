@@ -1,6 +1,7 @@
 import hre from "hardhat";
 import { namehash } from "ethers";
-import TestResolversModule from "../ignition/modules/DataResolver.js";
+import DataResolverModule from "../ignition/modules/DataResolver.js";
+import MultiParamResolverModule from "../ignition/modules/MultiParamResolver.js";
 
 /**
  * Deploy test resolver contracts to localhost hardhat node.
@@ -13,7 +14,8 @@ async function main() {
     const ethers = connection.ethers;
     
     // Deploy contracts using Hardhat Ignition
-    const { dataResolver, multiParamResolver } = await connection.ignition.deploy(TestResolversModule);
+    const { dataResolver } = await connection.ignition.deploy(DataResolverModule);
+    const { multiParamResolver } = await connection.ignition.deploy(MultiParamResolverModule);
     
     const dataResolverAddress = await dataResolver.getAddress();
     const multiParamResolverAddress = await multiParamResolver.getAddress();

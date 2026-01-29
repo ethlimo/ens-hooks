@@ -1,8 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export default buildModule("TestResolvers", (m) => {
+export default buildModule("DataResolverModule", (m) => {
   const dataResolver = m.contract("DataResolver");
-  const multiParamResolver = m.contract("MultiParamResolver");
-  
-  return { dataResolver, multiParamResolver };
+  return { dataResolver };
 });

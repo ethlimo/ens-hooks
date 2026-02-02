@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.0](https://github.com/ethlimo/ens-hooks/compare/v2.0.0...v2.1.0) (2026-02-02)
+
+
+### Features
+
+* automatically set content hash in testnet script, split ignition modules, deploy to sepolia ([453f32c](https://github.com/ethlimo/ens-hooks/commit/453f32caeca15d43a6d511a25c28b5bb6d5aeed3))
+
+
+### Bug Fixes
+
+* Enforce (bytes) return type requirement and replace any with string in HookExecutionResult ([3c7f225](https://github.com/ethlimo/ens-hooks/commit/3c7f2254b5d63b61cf6713a34156d6670c9b4833))
+
 ## [2.0.0](https://github.com/ethlimo/ens-hooks/compare/v1.0.0...v2.0.0) (2026-01-22)
 
 

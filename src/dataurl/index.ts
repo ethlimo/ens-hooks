@@ -26,7 +26,7 @@ export type ProviderMap = Map<number | bigint, Provider>;
  */
 export interface HookExecutionResult {
     _tag: "HookExecutionResult";
-    data: any;
+    data: string;
 }
 
 /**
@@ -109,6 +109,14 @@ export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
             }
         }
         
+        // Enforce bytes return type only
+        if (hook.returnType !== '(bytes)') {
+            return {
+                isValid: false,
+                error: `Invalid return type: expected (bytes), got ${hook.returnType}`
+            };
+        }
+        
         return { isValid: true };
     } catch (error) {
         return {
@@ -119,54 +127,22 @@ export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
 }
 
 /**
- * Decodes a result using the specified return type.
- * @param resultBytes - The ABI-encoded result bytes
- * @param returnType - The return type in Solidity tuple notation (e.g., "(string)")
- * @returns The decoded result
+ * Decodes the ABI-encoded bytes returned from a Solidity function.
+ * This implementation only supports (bytes) return type.
+ * Solidity functions that return bytes actually return ABI-encoded bytes,
+ * so we need to decode them to extract the inner bytes value.
+ * @param resultBytes - The ABI-encoded result bytes from the hook execution
+ * @param returnType - The return type in Solidity tuple notation (must be "(bytes)")
+ * @returns The decoded bytes as a hex string
  */
-export function decodeResult(resultBytes: string, returnType: string): any {
-    try {
-        const typeMatch = returnType.match(/^\((.+)\)$/);
-        
-        if (!typeMatch) {
-            throw new Error(`Invalid return type format: ${returnType}`);
-        }
-        
-        const innerType = typeMatch[1];
-        
-        const types = [];
-        let depth = 0;
-        let current = '';
-        
-        for (const char of innerType) {
-            if (char === '(' || char === '[') {
-                depth++;
-                current += char;
-            } else if (char === ')' || char === ']') {
-                depth--;
-                current += char;
-            } else if (char === ',' && depth === 0) {
-                types.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-        
-        if (current) {
-            types.push(current.trim());
-        }
-        
-        const decoded = AbiCoder.defaultAbiCoder().decode(types, resultBytes);
-        
-        if (decoded.length === 1) {
-            return decoded[0];
-        }
-        
-        return decoded;
-    } catch (error) {
-        throw new Error(`Failed to decode result: ${error instanceof Error ? error.message : String(error)}`);
+export function decodeResult(resultBytes: string, returnType: string): string {
+    if (returnType !== '(bytes)') {
+        throw new Error(`Invalid return type: expected (bytes), got ${returnType}`);
     }
+    
+    // ABI-decode the bytes to extract the inner bytes value
+    const decoded = AbiCoder.defaultAbiCoder().decode(["bytes"], resultBytes);
+    return decoded[0];
 }
 
 /**
@@ -280,11 +256,12 @@ export async function executeHook(
         
         const resultBytes = await contract[functionName](...params);
         
-        const decodedResult = decodeResult(resultBytes, hook.returnType);
+        // Validate return type and pass through bytes result
+        const result = decodeResult(resultBytes, hook.returnType);
         
         return {
             _tag: "HookExecutionResult",
-            data: decodedResult
+            data: result
         };
     } catch (error) {
         return {

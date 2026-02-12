@@ -4,14 +4,14 @@ import { expect } from "chai";
 import { 
     encodeHook,
     decodeHook,
-    encodeHookString,
-    decodeHookString,
     computeSelector,
-    parseFunctionCall,
+    extractFunctionName,
+    parseParameterTypes,
+    isFixedSizePrimitive,
+    validateFunctionCallMatchesSignature,
     encodeERC7930Target,
     decodeERC7930Target,
     isEIP8121Hook,
-    isEIP8121HookString,
     encodeEIP8121HookForContenthash,
     tryDecodeEIP8121HookFromContenthash,
     encodeDataUri,
@@ -103,60 +103,171 @@ describe("EIP-8121 Hook Encoding", function () {
         });
 
         it("should match known selectors", function () {
-            // data(bytes32,string) from IDataResolver
-            const dataSelector = computeSelector("data(bytes32,string)");
-            expect(dataSelector).to.equal("0xecbfada3");
+            // data(bytes32) from IDataResolver
+            const dataSelector = computeSelector("data(bytes32)");
+            expect(dataSelector).to.equal("0x0147fb0c");
         });
     });
 
-    describe("Function Call Parsing", function () {
-        it("should parse simple function calls", function () {
-            const functionCall = "data(bytes32)";
-            const name = parseFunctionCall(functionCall);
+    describe("Function Name Extraction", function () {
+        it("should extract function name from signature", function () {
+            const functionSignature = "data(bytes32)";
+            const name = extractFunctionName(functionSignature);
             expect(name).to.equal("data");
         });
 
-        it("should parse function calls with multiple parameters", function () {
-            const functionCall = "getData(bytes32,string)";
-            const name = parseFunctionCall(functionCall);
+        it("should extract function name from call", function () {
+            const functionCall = "getData(0x1234567890123456789012345678901234567890123456789012345678901234)";
+            const name = extractFunctionName(functionCall);
             expect(name).to.equal("getData");
         });
 
         it("should throw on invalid format", function () {
-            expect(() => parseFunctionCall("invalidformat")).to.throw();
+            expect(() => extractFunctionName("invalidformat")).to.throw();
+        });
+    });
+
+    describe("Parameter Type Validation", function () {
+        it("should accept fixed-size primitives", function () {
+            const validTypes = [
+                "bool",
+                "address",
+                "uint8", "uint16", "uint32", "uint64", "uint128", "uint256",
+                "int8", "int16", "int32", "int64", "int128", "int256",
+                "bytes1", "bytes2", "bytes4", "bytes8", "bytes16", "bytes32"
+            ];
+            
+            for (const type of validTypes) {
+                expect(isFixedSizePrimitive(type), `${type} should be valid`).to.be.true;
+            }
+        });
+
+        it("should reject dynamic types", function () {
+            const invalidTypes = [
+                "string",
+                "bytes",
+                "uint256[]",
+                "address[]",
+                "(uint256,string)"
+            ];
+            
+            for (const type of invalidTypes) {
+                expect(isFixedSizePrimitive(type), `${type} should be invalid`).to.be.false;
+            }
+        });
+
+        it("should parse 0 parameter functions", function () {
+            const sig = "getData()";
+            const params = parseParameterTypes(sig);
+            expect(params).to.deep.equal([]);
+        });
+
+        it("should parse 1 parameter functions", function () {
+            const sig = "getData(bytes32)";
+            const params = parseParameterTypes(sig);
+            expect(params).to.deep.equal(["bytes32"]);
+        });
+
+        it("should parse 2 parameter functions", function () {
+            const sig = "getData(bytes32,uint256)";
+            const params = parseParameterTypes(sig);
+            expect(params).to.deep.equal(["bytes32", "uint256"]);
+        });
+
+        it("should throw on too many parameters", function () {
+            const sig = "getData(bytes32,uint256,address)";
+            expect(() => parseParameterTypes(sig)).to.throw("Too many parameters");
+        });
+
+        it("should throw on unsupported parameter type", function () {
+            const sig = "getData(string)";
+            expect(() => parseParameterTypes(sig)).to.throw("Unsupported parameter type");
+        });
+    });
+
+    describe("Function Call Validation", function () {
+        it("should validate matching function call and signature", function () {
+            expect(() => validateFunctionCallMatchesSignature(
+                "getData(bytes32)",
+                "getData(0x1234567890123456789012345678901234567890123456789012345678901234)"
+            )).to.not.throw();
+        });
+
+        it("should throw on function name mismatch", function () {
+            expect(() => validateFunctionCallMatchesSignature(
+                "getData(bytes32)",
+                "getInfo(0x1234567890123456789012345678901234567890123456789012345678901234)"
+            )).to.throw("Function name mismatch");
+        });
+
+        it("should throw on parameter count mismatch", function () {
+            expect(() => validateFunctionCallMatchesSignature(
+                "getData(bytes32)",
+                "getData()"
+            )).to.throw("Parameter count mismatch");
         });
     });
 
     describe("Hook Encoding (Bytes Format)", function () {
-        it("should encode hook with 4 parameters", async function () {
-            const functionSelector = computeSelector("data(bytes32)");
-            const functionCall = "data(bytes32)";
+        it("should encode hook with 5 parameters (0-param function)", async function () {
+            const functionSignature = "getData()";
+            const functionCall = "getData()";
             const returnType = "(bytes)";
             const target: EIP8121Target = {
                 chainId: 1,
                 address: "0x1234567890123456789012345678901234567890"
             };
             
-            const encoded = await encodeHook(functionSelector, functionCall, returnType, target);
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
             
-            // Should start with HOOK_SELECTOR
+            // Should start with HOOK_SELECTOR (0x6113bfa3)
+            expect(encoded.toLowerCase().startsWith(HOOK_SELECTOR.toLowerCase())).to.be.true;
+        });
+
+        it("should encode hook with 5 parameters (1-param function)", async function () {
+            const functionSignature = "data(bytes32)";
+            const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
+            const returnType = "(bytes)";
+            const target: EIP8121Target = {
+                chainId: 1,
+                address: "0x1234567890123456789012345678901234567890"
+            };
+            
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
+            
+            // Should start with HOOK_SELECTOR (0x6113bfa3)
+            expect(encoded.toLowerCase().startsWith(HOOK_SELECTOR.toLowerCase())).to.be.true;
+        });
+
+        it("should encode hook with 5 parameters (2-param function)", async function () {
+            const functionSignature = "getData(bytes32,bytes32)";
+            const functionCall = "getData(0x1234567890123456789012345678901234567890123456789012345678901234,0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd)";
+            const returnType = "(bytes)";
+            const target: EIP8121Target = {
+                chainId: 1,
+                address: "0x1234567890123456789012345678901234567890"
+            };
+            
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
+            
+            // Should start with HOOK_SELECTOR (0x6113bfa3)
             expect(encoded.toLowerCase().startsWith(HOOK_SELECTOR.toLowerCase())).to.be.true;
         });
 
         it("should decode hook correctly", async function () {
-            const functionSelector = computeSelector("data(bytes32)");
-            const functionCall = "data(bytes32)";
+            const functionSignature = "data(bytes32)";
+            const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
             const returnType = "(bytes)";
             const target: EIP8121Target = {
                 chainId: 1,
                 address: "0x1234567890123456789012345678901234567890"
             };
             
-            const encoded = await encodeHook(functionSelector, functionCall, returnType, target);
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
             const decoded = await decodeHook(encoded);
             
             expect(decoded).to.not.be.null;
-            expect(decoded!.functionSelector.toLowerCase()).to.equal(functionSelector.toLowerCase());
+            expect(decoded!.functionSignature).to.equal(functionSignature);
             expect(decoded!.functionCall).to.equal(functionCall);
             expect(decoded!.returnType).to.equal(returnType);
             expect(decoded!.target.chainId).to.equal(target.chainId);
@@ -164,138 +275,101 @@ describe("EIP-8121 Hook Encoding", function () {
         });
 
         it("should roundtrip encode/decode", async function () {
-            const functionSelector = "0x12345678";
-            const functionCall = "getData(bytes32)";
-            const returnType = "(string)";
+            const functionSignature = "getData(bytes32)";
+            const functionCall = "getData(0x1234567890123456789012345678901234567890123456789012345678901234)";
+            const returnType = "(bytes)";
             const target: EIP8121Target = {
                 chainId: 10,
                 address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
             };
             
-            const encoded = await encodeHook(functionSelector, functionCall, returnType, target);
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
             const decoded = await decodeHook(encoded);
             
             expect(decoded).to.not.be.null;
-            expect(decoded!.functionSelector.toLowerCase()).to.equal(functionSelector.toLowerCase());
+            expect(decoded!.functionSignature).to.equal(functionSignature);
             expect(decoded!.functionCall).to.equal(functionCall);
             expect(decoded!.returnType).to.equal(returnType);
             expect(decoded!.target).to.deep.equal(target);
         });
 
-        it("should handle different return types", async function () {
-            const testCases = [
-                "(string)",
-                "(bytes)",
-                "(uint256)",
-                "(address)",
-                "(string,uint256)",
-                "(string,uint256,bytes32)",
-                "((string,uint256))"
-            ];
-            
-            const functionSelector = computeSelector("test(bytes32)");
-            const functionCall = "test(bytes32)";
+        it("should throw on non-bytes return type", async function () {
+            const functionSignature = "test(bytes32)";
+            const functionCall = "test(0x1234567890123456789012345678901234567890123456789012345678901234)";
+            const returnType = "(string)";
             const target: EIP8121Target = {
                 chainId: 1,
                 address: "0x1234567890123456789012345678901234567890"
             };
             
-            for (const returnType of testCases) {
-                const encoded = await encodeHook(functionSelector, functionCall, returnType, target);
+            try {
+                await encodeHook(functionSignature, functionCall, returnType, target);
+                expect.fail("Should have thrown on non-bytes return type");
+            } catch (error: any) {
+                expect(error.message).to.include("Invalid return type");
+            }
+        });
+
+        it("should throw on parameter count mismatch", async function () {
+            const functionSignature = "getData(bytes32)";
+            const functionCall = "getData()"; // Missing parameter
+            const returnType = "(bytes)";
+            const target: EIP8121Target = {
+                chainId: 1,
+                address: "0x1234567890123456789012345678901234567890"
+            };
+            
+            try {
+                await encodeHook(functionSignature, functionCall, returnType, target);
+                expect.fail("Should have thrown on parameter count mismatch");
+            } catch (error: any) {
+                expect(error.message).to.include("Parameter count mismatch");
+            }
+        });
+
+        it("should handle different fixed-size primitive parameters", async function () {
+            const testCases = [
+                { sig: "test(bool)", call: "test(true)" },
+                { sig: "test(address)", call: "test(0x1234567890123456789012345678901234567890)" },
+                { sig: "test(uint256)", call: "test(12345)" },
+                { sig: "test(int128)", call: "test(-12345)" },
+                { sig: "test(bytes32)", call: "test(0x1234567890123456789012345678901234567890123456789012345678901234)" },
+                { sig: "test(bytes32,uint256)", call: "test(0x1234567890123456789012345678901234567890123456789012345678901234,42)" }
+            ];
+            
+            const returnType = "(bytes)";
+            const target: EIP8121Target = {
+                chainId: 1,
+                address: "0x1234567890123456789012345678901234567890"
+            };
+            
+            for (const testCase of testCases) {
+                const encoded = await encodeHook(testCase.sig, testCase.call, returnType, target);
                 const decoded = await decodeHook(encoded);
                 
                 expect(decoded).to.not.be.null;
-                expect(decoded!.returnType).to.equal(returnType);
+                expect(decoded!.functionSignature).to.equal(testCase.sig);
             }
-        });
-    });
-
-    describe("Hook Encoding (String Format)", function () {
-        it("should encode hook string format", async function () {
-            const functionSelector = "0x12345678";
-            const functionCall = "data(bytes32)";
-            const returnType = "(bytes)";
-            const target: EIP8121Target = {
-                chainId: 1,
-                address: "0x1234567890123456789012345678901234567890"
-            };
-            
-            const encoded = await encodeHookString(functionSelector, functionCall, returnType, target);
-            
-            expect(encoded).to.include("hook(");
-            expect(encoded).to.include(functionSelector);
-            expect(encoded).to.include(functionCall);
-            expect(encoded).to.include(returnType);
-        });
-
-        it("should decode hook string format", async function () {
-            const functionSelector = "0x12345678";
-            const functionCall = "data(bytes32)";
-            const returnType = "(bytes)";
-            const target: EIP8121Target = {
-                chainId: 1,
-                address: "0x1234567890123456789012345678901234567890"
-            };
-            
-            const encoded = await encodeHookString(functionSelector, functionCall, returnType, target);
-            const decoded = await decodeHookString(encoded);
-            
-            expect(decoded).to.not.be.null;
-            expect(decoded!.functionSelector.toLowerCase()).to.equal(functionSelector.toLowerCase());
-            expect(decoded!.functionCall).to.equal(functionCall);
-            expect(decoded!.returnType).to.equal(returnType);
-            expect(decoded!.target.chainId).to.equal(target.chainId);
-            expect(decoded!.target.address.toLowerCase()).to.equal(target.address.toLowerCase());
-        });
-
-        it("should roundtrip string format", async function () {
-            const functionSelector = computeSelector("getData(bytes32)");
-            const functionCall = "getData(bytes32)";
-            const returnType = "(string,uint256)";
-            const target: EIP8121Target = {
-                chainId: 137,
-                address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
-            };
-            
-            const encoded = await encodeHookString(functionSelector, functionCall, returnType, target);
-            const decoded = await decodeHookString(encoded);
-            
-            expect(decoded).to.not.be.null;
-            expect(decoded!.functionSelector.toLowerCase()).to.equal(functionSelector.toLowerCase());
-            expect(decoded!.functionCall).to.equal(functionCall);
-            expect(decoded!.returnType).to.equal(returnType);
-            expect(decoded!.target).to.deep.equal(target);
         });
     });
 
     describe("Hook Detection", function () {
         it("should detect EIP-8121 hook in bytes format", async function () {
-            const functionSelector = computeSelector("data(bytes32)");
-            const functionCall = "data(bytes32)";
+            const functionSignature = "data(bytes32)";
+            const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
             const returnType = "(bytes)";
             const target: EIP8121Target = {
                 chainId: 1,
                 address: "0x1234567890123456789012345678901234567890"
             };
             
-            const encoded = await encodeHook(functionSelector, functionCall, returnType, target);
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
             expect(isEIP8121Hook(encoded)).to.be.true;
         });
 
         it("should not detect non-hook data", function () {
             expect(isEIP8121Hook("0x1234567890")).to.be.false;
             expect(isEIP8121Hook("0x")).to.be.false;
-        });
-
-        it("should detect EIP-8121 hook string format", function () {
-            const hookString = 'hook(0x12345678, "data(bytes32)", "(bytes)", 0x0000000000000001...)';
-            expect(isEIP8121HookString(hookString)).to.be.true;
-        });
-
-        it("should not detect non-hook strings", function () {
-            expect(isEIP8121HookString("https://example.com")).to.be.false;
-            expect(isEIP8121HookString("data:text/html,...")).to.be.false;
-            expect(isEIP8121HookString("random string")).to.be.false;
         });
     });
 
@@ -332,15 +406,15 @@ describe("EIP-8121 Hook Encoding", function () {
         });
 
         it("should encode EIP-8121 hook for contenthash", async function () {
-            const functionSelector = computeSelector("data(bytes32)");
-            const functionCall = "data(bytes32)";
+            const functionSignature = "data(bytes32)";
+            const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
             const returnType = "(bytes)";
             const target: EIP8121Target = {
                 chainId: 1,
                 address: "0x1234567890123456789012345678901234567890"
             };
             
-            const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+            const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
             const contenthash = encodeEIP8121HookForContenthash(hookData);
             
             // Should be prefixed with ETH_CALLDATA protocol code
@@ -350,15 +424,15 @@ describe("EIP-8121 Hook Encoding", function () {
         });
 
         it("should decode EIP-8121 hook from contenthash", async function () {
-            const functionSelector = computeSelector("data(bytes32)");
-            const functionCall = "data(bytes32)";
+            const functionSignature = "data(bytes32)";
+            const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
             const returnType = "(bytes)";
             const target: EIP8121Target = {
                 chainId: 1,
                 address: "0x1234567890123456789012345678901234567890"
             };
             
-            const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+            const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
             const contenthash = encodeEIP8121HookForContenthash(hookData);
             const decoded = tryDecodeEIP8121HookFromContenthash(contenthash);
             
@@ -367,16 +441,16 @@ describe("EIP-8121 Hook Encoding", function () {
         });
 
         it("should roundtrip EIP-8121 hook through contenthash", async function () {
-            const functionSelector = computeSelector("getData(bytes32)");
-            const functionCall = "getData(bytes32)";
-            const returnType = "(string,uint256)";
+            const functionSignature = "getData(bytes32)";
+            const functionCall = "getData(0x1234567890123456789012345678901234567890123456789012345678901234)";
+            const returnType = "(bytes)";
             const target: EIP8121Target = {
                 chainId: 137,
                 address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
             };
             
             // Encode hook
-            const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+            const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
             
             // Wrap for contenthash
             const contenthash = encodeEIP8121HookForContenthash(hookData);
@@ -388,7 +462,7 @@ describe("EIP-8121 Hook Encoding", function () {
             // Decode hook
             const decoded = await decodeHook(unwrapped!);
             expect(decoded).to.not.be.null;
-            expect(decoded!.functionSelector.toLowerCase()).to.equal(functionSelector.toLowerCase());
+            expect(decoded!.functionSignature).to.equal(functionSignature);
             expect(decoded!.functionCall).to.equal(functionCall);
             expect(decoded!.returnType).to.equal(returnType);
             expect(decoded!.target).to.deep.equal(target);
@@ -408,8 +482,8 @@ describe("EIP-8121 Hook Encoding", function () {
             const encodedUri = encodeDataUri(uri);
             
             const hookData = await encodeHook(
-                computeSelector("data(bytes32)"),
                 "data(bytes32)",
+                "data(0x1234567890123456789012345678901234567890123456789012345678901234)",
                 "(bytes)",
                 { chainId: 1, address: "0x1234567890123456789012345678901234567890" }
             );

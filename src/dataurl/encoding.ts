@@ -4,25 +4,11 @@ import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-ad
 
 export const HookInterface = new ethers.Interface(HookAbi);
 
-// ============================================================================
-// Contenthash Encoding/Decoding
-// ============================================================================
-
-/**
- * Encodes a plain URI string for use in contenthash records.
- * @param uri - The URI string to encode (e.g., "https://example.com" or "data:text/html,...")
- * @returns The encoded contenthash with the URI protocol code prefix
- */
 export function encodeDataUri(uri: string): string {
     const uriBytes = toUtf8Bytes(uri);
     return ethers.concat([PROTOCODE_CONTENTHASH_URI, uriBytes]);
 }
 
-/**
- * Decodes a plain URI from contenthash data.
- * @param data - The contenthash data (with or without protocol code prefix)
- * @returns The decoded URI string, or null if decoding fails
- */
 export function tryDecodeDataUri(data: BytesLike): string | null {
     try {
         const bytes = getBytes(data);
@@ -45,20 +31,10 @@ export function tryDecodeDataUri(data: BytesLike): string | null {
     }
 }
 
-/**
- * Wraps an EIP-8121 hook for storage in contenthash records.
- * @param hookData - The encoded EIP-8121 hook (from encodeHook)
- * @returns The hook with ETH_CALLDATA protocol code prefix for contenthash storage
- */
 export function encodeEIP8121HookForContenthash(hookData: string): string {
     return ethers.concat([PROTOCODE_ETH_CALLDATA, hookData]);
 }
 
-/**
- * Decodes an EIP-8121 hook from contenthash data.
- * @param data - The contenthash data (with protocol code prefix)
- * @returns The decoded hook data (without protocol code), or null if invalid
- */
 export function tryDecodeEIP8121HookFromContenthash(data: BytesLike): string | null {
     try {
         const bytes = getBytes(data);
@@ -80,35 +56,23 @@ export function tryDecodeEIP8121HookFromContenthash(data: BytesLike): string | n
     }
 }
 
-// ============================================================================
-// EIP-8121 Hook Implementation
-// ============================================================================
-
-/**
- * EIP-8121 hook target with chain ID and address.
- */
 export interface EIP8121Target {
     chainId: number;
     address: string;
 }
 
-/**
- * EIP-8121 decoded hook data.
- */
+export interface HookParameter {
+    type: string;
+    value: any;
+}
+
 export interface DecodedEIP8121Hook {
-    functionSelector: string;
+    functionSignature: string;
     functionCall: string;
     returnType: string;
     target: EIP8121Target;
 }
 
-/**
- * Encodes an ERC-7930 interoperable address (EIP-155 only).
- * Uses @wonderland/interop-addresses for proper spec compliance.
- * @param chainId - The EIP-155 chain ID (e.g., 1 for Ethereum mainnet)
- * @param address - The contract address
- * @returns The encoded target as a hex string
- */
 export async function encodeERC7930Target(chainId: number, address: string): Promise<string> {
     const binaryAddress = await buildFromPayload({
         version: 1,
@@ -119,12 +83,6 @@ export async function encodeERC7930Target(chainId: number, address: string): Pro
     return binaryAddress;
 }
 
-/**
- * Decodes an ERC-7930 interoperable address (EIP-155 only).
- * Uses @wonderland/interop-addresses for proper spec compliance.
- * @param target - The encoded target bytes
- * @returns The decoded chain ID and address, or null if invalid
- */
 export async function decodeERC7930Target(target: string): Promise<EIP8121Target | null> {
     try {
         const chainId = await getChainId(target);
@@ -140,39 +98,56 @@ export async function decodeERC7930Target(target: string): Promise<EIP8121Target
     }
 }
 
-/**
- * Computes the function selector from a function signature.
- * @param functionSignature - The function signature (e.g., "data(bytes32)")
- * @returns The 4-byte function selector as a hex string
- */
 export function computeSelector(functionSignature: string): string {
     const hash = ethers.id(functionSignature);
     return ethers.dataSlice(hash, 0, 4);
 }
 
 /**
- * Parses a function call string to extract the function name.
- * For EIP-8121 with single nodehash parameter, we only need the function name.
- * @param functionCall - The function call string (e.g., "data(bytes32)")
- * @returns The function name
+ * Validates that a parameter type is a fixed-size Solidity primitive.
+ * Allowed types: bool, address, uint8-256, int8-256, bytes1-32
+ * Rejects: string, bytes (dynamic), arrays, structs, tuples
  */
-export function parseFunctionCall(functionCall: string): string {
-    const match = functionCall.match(/^(\w+)\(/);
-    if (!match) {
-        throw new Error("Invalid function call format");
+export function isFixedSizePrimitive(type: string): boolean {
+    const trimmedType = type.trim();
+    
+    // Check for exact matches
+    if (trimmedType === 'bool' || trimmedType === 'address') {
+        return true;
     }
-    return match[1];
+    
+    // Check for uintN (uint8, uint16, ..., uint256)
+    const uintMatch = trimmedType.match(/^uint(\d+)$/);
+    if (uintMatch) {
+        const bits = parseInt(uintMatch[1], 10);
+        return bits >= 8 && bits <= 256 && bits % 8 === 0;
+    }
+    
+    // Check for intN (int8, int16, ..., int256)
+    const intMatch = trimmedType.match(/^int(\d+)$/);
+    if (intMatch) {
+        const bits = parseInt(intMatch[1], 10);
+        return bits >= 8 && bits <= 256 && bits % 8 === 0;
+    }
+    
+    // Check for bytesN (bytes1, bytes2, ..., bytes32)
+    const bytesMatch = trimmedType.match(/^bytes(\d+)$/);
+    if (bytesMatch) {
+        const n = parseInt(bytesMatch[1], 10);
+        return n >= 1 && n <= 32;
+    }
+    
+    return false;
 }
 
 /**
- * Parses a function signature to extract parameter types.
- * @param functionSignature - The function signature (e.g., "data(bytes32)" or "dataWithOptions(bytes32,bytes32)")
- * @returns Array of parameter types, or null if parsing fails
+ * Parses parameter types from a function signature.
+ * Returns array of parameter types, or throws if signature is invalid.
  */
-export function parseFunctionSignature(functionSignature: string): string[] | null {
+export function parseParameterTypes(functionSignature: string): string[] {
     const match = functionSignature.match(/^\w+\(([^)]*)\)$/);
     if (!match) {
-        return null;
+        throw new Error('Invalid function signature format');
     }
     
     const paramsString = match[1].trim();
@@ -180,39 +155,102 @@ export function parseFunctionSignature(functionSignature: string): string[] | nu
         return [];
     }
     
-    // Split by comma, handling nested types (though we only support bytes32)
+    // Split by comma
     const params = paramsString.split(',').map(p => p.trim()).filter(p => p.length > 0);
+    
+    // Validate parameter count (0-2 only)
+    if (params.length > 2) {
+        throw new Error(`Too many parameters: ${params.length}. Maximum 2 parameters allowed.`);
+    }
+    
+    // Validate each parameter type
+    for (const param of params) {
+        if (!isFixedSizePrimitive(param)) {
+            throw new Error(`Unsupported parameter type: ${param}. Only fixed-size primitives allowed (bool, address, uintN, intN, bytesN).`);
+        }
+    }
+    
     return params;
 }
 
 /**
- * Encodes an EIP-8121 hook in bytes format (ABI-encoded).
- * @param functionSelector - The 4-byte function selector
- * @param functionCall - The function call string (e.g., "data(bytes32)")
- * @param returnType - The return type in Solidity tuple notation (e.g., "(string)")
- * @param target - The target with chainId and address
- * @returns The ABI-encoded hook data
+ * Extracts function name from function signature or function call.
+ */
+export function extractFunctionName(functionString: string): string {
+    const match = functionString.match(/^(\w+)\(/);
+    if (!match) {
+        throw new Error('Invalid function format');
+    }
+    return match[1];
+}
+
+/**
+ * Strictly validates that functionCall matches functionSignature structure.
+ * Validates function name matches and parameter count matches.
+ */
+export function validateFunctionCallMatchesSignature(
+    functionSignature: string,
+    functionCall: string
+): void {
+    const sigName = extractFunctionName(functionSignature);
+    const callName = extractFunctionName(functionCall);
+    
+    if (sigName !== callName) {
+        throw new Error(`Function name mismatch: signature has '${sigName}' but call has '${callName}'`);
+    }
+    
+    const paramTypes = parseParameterTypes(functionSignature);
+    
+    // Parse parameter values from function call
+    const callMatch = functionCall.match(/^\w+\(([^)]*)\)$/);
+    if (!callMatch) {
+        throw new Error('Invalid function call format');
+    }
+    
+    const callParamsString = callMatch[1].trim();
+    
+    // Count parameters in call (simple comma split - ethers will validate actual values)
+    let callParamCount = 0;
+    if (callParamsString) {
+        // Simple approach: count commas + 1, accounting for empty string
+        callParamCount = callParamsString.split(',').filter(p => p.trim().length > 0).length;
+    }
+    
+    if (callParamCount !== paramTypes.length) {
+        throw new Error(`Parameter count mismatch: signature has ${paramTypes.length} parameters but call has ${callParamCount}`);
+    }
+}
+
+/**
+ * Encodes a hook with the new 5-parameter format (functionSignature, functionCall, returnType, target).
+ * Validates that functionCall matches functionSignature and parameters are fixed-size primitives.
  */
 export async function encodeHook(
-    functionSelector: string,
+    functionSignature: string,
     functionCall: string,
     returnType: string,
     target: EIP8121Target
 ): Promise<string> {
+    // Validate parameter types (0-2 fixed-size primitives only)
+    parseParameterTypes(functionSignature);
+    
+    // Strict validation that functionCall matches functionSignature
+    validateFunctionCallMatchesSignature(functionSignature, functionCall);
+    
+    // Validate return type is bytes
+    if (returnType.trim() !== '(bytes)') {
+        throw new Error(`Invalid return type: ${returnType}. Only (bytes) return type is supported.`);
+    }
+    
     const targetBytes = await encodeERC7930Target(target.chainId, target.address);
     return HookInterface.encodeFunctionData("hook", [
-        functionSelector,
+        functionSignature,
         functionCall,
         returnType,
         targetBytes
     ]);
 }
 
-/**
- * Decodes an EIP-8121 hook from bytes format (ABI-encoded).
- * @param data - The ABI-encoded hook data
- * @returns The decoded hook, or null if decoding fails
- */
 export async function decodeHook(data: string): Promise<DecodedEIP8121Hook | null> {
     try {
         const decoded = HookInterface.decodeFunctionData("hook", data);
@@ -223,7 +261,7 @@ export async function decodeHook(data: string): Promise<DecodedEIP8121Hook | nul
         }
         
         return {
-            functionSelector: decoded[0],
+            functionSignature: decoded[0],
             functionCall: decoded[1],
             returnType: decoded[2],
             target
@@ -233,73 +271,10 @@ export async function decodeHook(data: string): Promise<DecodedEIP8121Hook | nul
     }
 }
 
-/**
- * Encodes an EIP-8121 hook in string format.
- * Format: hook(0xSelector, "functionCall()", "(returnType)", 0xTarget)
- * @param functionSelector - The 4-byte function selector
- * @param functionCall - The function call string
- * @param returnType - The return type in Solidity tuple notation
- * @param target - The target with chainId and address
- * @returns The string-formatted hook
- */
-export async function encodeHookString(
-    functionSelector: string,
-    functionCall: string,
-    returnType: string,
-    target: EIP8121Target
-): Promise<string> {
-    const targetBytes = await encodeERC7930Target(target.chainId, target.address);
-    return `hook(${functionSelector}, "${functionCall}", "${returnType}", ${targetBytes})`;
-}
-
-/**
- * Decodes an EIP-8121 hook from string format.
- * @param hookStr - The string-formatted hook
- * @returns The decoded hook, or null if decoding fails
- */
-export async function decodeHookString(hookStr: string): Promise<DecodedEIP8121Hook | null> {
-    try {
-        const regex = /^hook\((0x[0-9a-fA-F]{8}),\s*"([^"]+)",\s*"([^"]+)",\s*(0x[0-9a-fA-F]+)\)$/;
-        const match = hookStr.match(regex);
-        
-        if (!match) {
-            return null;
-        }
-        
-        const target = await decodeERC7930Target(match[4]);
-        if (!target) {
-            return null;
-        }
-        
-        return {
-            functionSelector: match[1],
-            functionCall: match[2],
-            returnType: match[3],
-            target
-        };
-    } catch {
-        return null;
-    }
-}
-
-/**
- * Detects if data is an EIP-8121 hook by checking for the hook selector.
- * @param data - The data to check
- * @returns True if the data starts with the EIP-8121 hook selector
- */
 export function isEIP8121Hook(data: string): boolean {
     try {
         return data.toLowerCase().startsWith(HOOK_SELECTOR.toLowerCase());
     } catch {
         return false;
     }
-}
-
-/**
- * Detects if a string is an EIP-8121 hook in string format.
- * @param str - The string to check
- * @returns True if the string starts with "hook("
- */
-export function isEIP8121HookString(str: string): boolean {
-    return str.trim().startsWith("hook(");
 }

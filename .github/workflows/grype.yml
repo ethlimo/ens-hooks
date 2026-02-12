@@ -30,4 +30,5 @@ jobs:
           path: "."
           fail-build: true
           severity-cutoff: high
+          output-format: "table"
 

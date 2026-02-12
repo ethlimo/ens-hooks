@@ -4,12 +4,18 @@ Focused implementation of EIP-8121 for contenthash resolution with intentional s
 
 ## Scope Restrictions
 
-### Up to Two bytes32 Parameters
-Target functions accept 1-2 `bytes32` parameters:
-- **nodehash** (required): Primary node identifier
-- **cacheNonce** (optional): Cache-busting parameter
+### 0-2 Fixed-Size Primitive Parameters
+Target functions accept 0-2 parameters of fixed-size Solidity primitives:
+- **No parameters**: For global/singleton data
+- **1 parameter** (typically `nodehash: bytes32`): Node-specific data
+- **2 parameters** (typically `nodehash: bytes32, hashOfContent: bytes32`): Node data with cache-busting
+  - `hashOfContent` can be either a hash of expected content or an autoincrement for web gateway caching
 
-Designed for contenthash resolution with optional cache control. Not general-purpose metadata queries requiring complex multi-parameter signatures or non-bytes32 types.
+**Supported Types:** `bool`, `address`, `uint8-256`, `int8-256`, `bytes1-32`
+
+**Not Supported:** Dynamic types (`string`, `bytes`, arrays), structs, tuples, or functions with 3+ parameters.
+
+Designed for contenthash resolution with support for global, node-specific, and cache-aware data retrieval.
 
 ### EIP-155 Chains Only
 ERC-7930 addresses limited to EVM chains via `@wonderland/interop-addresses` (v0.2.0). Non-EVM chains (Solana, Bitcoin, etc.) not supported.
@@ -25,13 +31,15 @@ Only `bytes` return type supported. No complex tuples, nested arrays, or multi-v
 
 ## Supported Features
 
-- EIP-8121 4-parameter hook encoding (selector `0x396b32a0`)
+- EIP-8121 hook encoding (selector `0x6113bfa3`)
 - ERC-7930 interoperable addresses (EIP-155 only)
-- Bytes and string encoding formats
+- Bytes-only encoding for contenthash
 - Multi-chain execution
-- 1-2 bytes32 parameter functions with validation
+- 0-2 fixed-size primitive parameters with strict validation
+- Type-safe API with parameter arrays
 - Optional trust verification (array/set/function-based)
+- Strict function call syntax validation
 
 ## Not Supported
 
-Functions with 3+ parameters, non-bytes32 parameter types, recursive hooks, complex return types, non-EVM chains.
+Functions with 3+ parameters, dynamic types (string, bytes, arrays), structs, tuples, recursive hooks, complex return types, non-EVM chains, string-encoded hooks.

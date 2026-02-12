@@ -7,19 +7,21 @@ TypeScript library for encoding, decoding, and executing [EIP-8121](./notes/EIP-
 This library implements [EIP-8121](./notes/EIP-8121.md) hooks, a specification for cross-chain function calls. A hook fully specifies what function to call, with what parameters, on which contract, on which chain using [ERC-7930](https://eips.ethereum.org/EIPS/eip-7930) interoperable addresses.
 
 **Key Features:**
-- EIP-8121 4-parameter hook encoding (selector `0x396b32a0`)
-- ERC-7930 interoperable addresses via `@wonderland/interop-addresses`
-- Multi-chain execution support (EIP-155 chains)
-- Optional trust verification (array/set/function-based)
-- Contenthash encoding/decoding for both hooks and plain URIs
+- EIP-8121 hook encoding (selector `0x6113bfa3`)
+- ERC-7930 interoperable addresses
+- Multi-chain execution (EIP-155)
+- 0-2 fixed-size primitive parameters
+- Optional trust verification
+- Contenthash encoding/decoding
 
 ## Scope
 
 This is a **focused implementation** for contenthash resolution. See [LIMITATIONS.md](./notes/LIMITATIONS.md) for scope restrictions:
-- Single-parameter functions only (`bytes32 node`)
+- 0-2 parameters of fixed-size primitives (bool, address, uintN, intN, bytesN)
 - EIP-155 chains only (EVM)
 - Bytes return type only
 - No recursive resolution
+- No struct or dynamic type support (string, bytes, arrays)
 - Requires ERC-3668 (CCIP-Read) enabled provider
 
 ## Installation
@@ -41,9 +43,9 @@ const target: EIP8121Target = {
 };
 
 const hookData = await encodeHook(
-    "0x5cc4350a",              // function selector
-    "getText(bytes32,string)", // function signature
-    "(string)",               // return type
+    "data(bytes32)",                    // function signature
+    "data(0x1234...)",                  // function call with values
+    "(bytes)",                          // return type
     target
 );
 ```
@@ -64,7 +66,7 @@ const providerMap: ProviderMap = new Map([
 
 // Execute the hook
 const result = await executeHook(hook!, {
-    nodehash: namehash("example.eth"),
+    params: [namehash("example.eth")],
     providerMap
 });
 
@@ -75,32 +77,67 @@ if (result._tag === "HookExecutionResult") {
 }
 ```
 
-### Multi-Parameter Hooks
+### Parameter Support
 
-Hooks can accept up to 2 bytes32 parameters:
-- **nodehash** (required): The primary node identifier
-- **cacheNonce** (optional): Cache-busting parameter that changes the contenthash hash
+Hooks support functions with 0-2 parameters of fixed-size Solidity primitives:
+- **0 parameters**: `getData()` - Global data
+- **1 parameter**: `data(bytes32)` - Node-specific data
+- **2 parameters**: `data(bytes32,bytes32)` - Node with additional context
+
+**Recommended Parameter Patterns:**
+- `()` - Zero parameters for global data
+- `(nodehash: bytes32)` - Single nodehash parameter for node-specific data
+- `(nodehash: bytes32, hashOfContent: bytes32)` - Two parameters for cache-busting
+  - `hashOfContent` should be either:
+    - A hash of the expected content (for integrity verification)
+    - An autoincrement value (for cache invalidation in web gateways)
+
+**Supported Types:** `bool`, `address`, `uint8-256`, `int8-256`, `bytes1-32`
 
 ```typescript
-import { executeHook, computeSelector } from '@ethlimo/ens-hooks';
+import { executeHook } from '@ethlimo/ens-hooks';
+import { namehash } from 'ethers';
 
-// Create hook with 2-parameter function signature
-const hook = await encodeHook(
-    computeSelector("dataWithOptions(bytes32,bytes32)"),
-    "dataWithOptions(bytes32,bytes32)",
+// 0-parameter hook
+const globalHook = await encodeHook(
+    "getData()",
+    "getData()",
     "(bytes)",
     { chainId: 1, address: "0x..." }
 );
 
-// Execute with optional cacheNonce
-const result = await executeHook(await decodeHook(hook)!, {
-    nodehash: namehash("example.eth"),
-    cacheNonce: "0x" + "0".repeat(64), // Any bytes32 value
+const globalResult = await executeHook(await decodeHook(globalHook)!, {
+    providerMap  // No params
+});
+
+// 1-parameter hook (node-specific data)
+const node = namehash("example.eth");
+const nodeHook = await encodeHook(
+    "data(bytes32)",
+    `data(${node})`,
+    "(bytes)",
+    { chainId: 1, address: "0x..." }
+);
+
+const nodeResult = await executeHook(await decodeHook(nodeHook)!, {
+    params: [node],  // Single parameter array
+    providerMap
+});
+
+// 2-parameter hook (with cache-busting)
+const hashOfContent = "0xabcd..."; // Hash or autoincrement
+const twoParamHook = await encodeHook(
+    "data(bytes32,bytes32)",
+    `data(${node},${hashOfContent})`,
+    "(bytes)",
+    { chainId: 1, address: "0x..." }
+);
+
+const twoParamResult = await executeHook(await decodeHook(twoParamHook)!, {
+    params: [node, hashOfContent],  // Two parameter array
     providerMap
 });
 ```
-
-The `cacheNonce` parameter is semantically ignored by most contracts but changes the function signature, which affects the resulting contenthash hash for external readers.
 
 ### Trust Verification
 
@@ -120,7 +157,7 @@ const trustedTargets = createTrustedTargets([
 
 // Execute with trust verification
 const result = await executeHook(hook!, {
-    nodehash: namehash("example.eth"),
+    params: [namehash("example.eth")],
     providerMap,
     trustedTargets
 });
@@ -134,20 +171,19 @@ Three verification modes supported:
 ## API Reference
 
 ### Hook Encoding/Decoding
-- `encodeHook()` - Encode EIP-8121 hook (bytes format)
+- `encodeHook()` - Encode EIP-8121 hook (bytes format, 5 parameters)
 - `decodeHook()` - Decode EIP-8121 hook (bytes format)
-- `encodeHookString()` - Encode hook (string format)
-- `decodeHookString()` - Decode hook (string format)
+- `computeSelector()` - Compute 4-byte function selector from signature
+- `parseParameterTypes()` - Parse and validate parameter types (0-2 fixed-size primitives)
+- `validateFunctionCallMatchesSignature()` - Strict validation of call vs signature
 
 ### Hook Execution
-- `executeHook(hook, options)` - Execute hook on target chain with options object:
-  - `nodehash`: bytes32 node identifier (required)
-  - `cacheNonce`: bytes32 cache-busting parameter (optional)
-  - `providerMap`: Map of chain IDs to providers (required)
-  - `trustedTargets`: Trust verification config (optional)
-  - `throwOnUntrusted`: Throw on untrusted target vs return error (optional)
-- `validateHook()` - Validate selector, parameter count (1-2), and types (bytes32 only)
-- `detectAndDecodeHook()` - Auto-detect format and decode
+- `executeHook(hook, options)` - Execute hook on target chain with type-safe options:
+  - For 0-parameter hooks: `{ providerMap, trustedTargets?, throwOnUntrusted? }`
+  - For 1-parameter hooks: `{ params: [string], providerMap, trustedTargets?, throwOnUntrusted? }`
+  - For 2-parameter hooks: `{ params: [string, string], providerMap, trustedTargets?, throwOnUntrusted? }`
+- `validateHook()` - Validate parameter count (0-2) and types (fixed-size primitives)
+- `detectAndDecodeHook()` - Detect and decode hooks from bytes format
 
 ### Contenthash Support
 - `encodeEIP8121HookForContenthash()` - Wrap hook for contenthash storage
@@ -166,7 +202,7 @@ Three verification modes supported:
 npm test
 ```
 
-60 tests covering encoding, decoding, execution, multi-parameter hooks, and trust verification.
+69 tests covering encoding, decoding, execution, and trust verification.
 
 ## Specification
 

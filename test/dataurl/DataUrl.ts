@@ -51,35 +51,35 @@ describe("EIP-8121 DataResolver Integration", function () {
     });
 
     it("should encode, store, and decode a hook", async function () {
-        const functionSelector = computeSelector("data(bytes32)");
-        const functionCall = "data(bytes32)";
+        const functionSignature = "data(bytes32)";
+        const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: 31337,
             address: await dataResolverContract.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const node = namehash("test.eth");
         
         await dataResolverContract.setData(node, ethers.toUtf8Bytes("stored-hook"));
         
         const decoded = await decodeHook(hookData);
         expect(decoded).to.not.be.null;
-        expect(decoded!.functionSelector.toLowerCase()).to.equal(functionSelector.toLowerCase());
+        expect(decoded!.functionSignature).to.equal(functionSignature);
         expect(decoded!.target.chainId).to.equal(31337);
     });
 
     it("should validate hook with correct selector", async function () {
-        const functionSelector = computeSelector("data(bytes32)");
-        const functionCall = "data(bytes32)";
+        const functionSignature = "data(bytes32)";
+        const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: 31337,
             address: await dataResolverContract.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const decoded = await decodeHook(hookData);
         
         expect(decoded).to.not.be.null;
@@ -88,21 +88,21 @@ describe("EIP-8121 DataResolver Integration", function () {
     });
 
     it("should reject hook with incorrect selector", async function () {
-        const wrongSelector = "0x12345678";
-        const functionCall = "data(bytes32)";
+        const functionSignature = "data(bytes32)";
+        const functionCall = "getData()"; // Wrong - mismatch
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: 31337,
             address: await dataResolverContract.getAddress()
         };
         
-        const hookData = await encodeHook(wrongSelector, functionCall, returnType, target);
-        const decoded = await decodeHook(hookData);
-        
-        expect(decoded).to.not.be.null;
-        const validation = validateHook(decoded!);
-        expect(validation.isValid).to.be.false;
-        expect(validation.error).to.include("Selector mismatch");
+        // Should throw during encoding due to mismatch
+        try {
+            await encodeHook(functionSignature, functionCall, returnType, target);
+            expect.fail("Should have thrown on function name mismatch");
+        } catch (error: any) {
+            expect(error.message).to.include("Function name mismatch");
+        }
     });
 
     it("should execute hook and retrieve data", async function () {
@@ -112,15 +112,16 @@ describe("EIP-8121 DataResolver Integration", function () {
         
         await dataResolverContract.setData(node, dataBytes);
         
-        const functionSelector = computeSelector("data(bytes32)");
-        const functionCall = "data(bytes32)";
+        const functionSignature = "data(bytes32)";
+        const nodehashValue = node;
+        const functionCall = `data(${nodehashValue})`;
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: 31337,
             address: await dataResolverContract.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const decoded = await decodeHook(hookData);
         
         expect(decoded).to.not.be.null;
@@ -174,15 +175,16 @@ describe("EIP-8121 DataResolver Integration", function () {
     it("should reject untrusted targets", async function () {
         const { executeHook, createTrustedTargets } = await import("../../src/index.js");
         
-        const functionSelector = computeSelector("data(bytes32)");
-        const functionCall = "data(bytes32)";
+        const functionSignature = "data(bytes32)";
+        const node = namehash("test.eth");
+        const functionCall = `data(${node})`;
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: 31337,
             address: await dataResolverContract.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const decoded = await decodeHook(hookData);
         
         expect(decoded).to.not.be.null;
@@ -193,10 +195,9 @@ describe("EIP-8121 DataResolver Integration", function () {
         ]);
         
         const providerMap = new Map([[31337, ethers.provider]]);
-        const node = namehash("test.eth");
         
         const result = await executeHook(decoded!, {
-            nodehash: node,
+            params: [node],
             providerMap,
             trustedTargets
         });
@@ -214,15 +215,15 @@ describe("EIP-8121 DataResolver Integration", function () {
         const node = namehash("test.eth");
         await dataResolverContract.setData(node, testData);
         
-        const functionSelector = computeSelector("data(bytes32)");
-        const functionCall = "data(bytes32)";
+        const functionSignature = "data(bytes32)";
+        const functionCall = `data(${node})`;
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: 31337,
             address: await dataResolverContract.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const decoded = await decodeHook(hookData);
         
         expect(decoded).to.not.be.null;
@@ -235,7 +236,7 @@ describe("EIP-8121 DataResolver Integration", function () {
         const providerMap = new Map([[31337, ethers.provider]]);
         
         const result = await executeHook(decoded!, {
-            nodehash: node,
+            params: [node],
             providerMap,
             trustedTargets
         });
@@ -247,11 +248,12 @@ describe("EIP-8121 DataResolver Integration", function () {
     });
 });
 
-describe("MultiParamResolver - Two-Parameter Hooks", function () {
+describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
     var ethers: HardhatEthers;
-    let multiParamResolver: any;
+    let zeroParameterHookTarget: any;
     let chainId: bigint;
     let providerMap: Map<number | bigint, any>;
+    let owner: any;
 
     before(async () => {
         const ret = await hre.network.connect();
@@ -259,40 +261,36 @@ describe("MultiParamResolver - Two-Parameter Hooks", function () {
     });
 
     beforeEach(async () => {
-        multiParamResolver = await ethers.deployContract("MultiParamResolver");
+        const [signer] = await ethers.getSigners();
+        owner = signer;
+        zeroParameterHookTarget = await ethers.deployContract("ZeroParameterHookTarget");
         
         chainId = BigInt((await ethers.provider.getNetwork()).chainId);
         providerMap = new Map();
         providerMap.set(Number(chainId), ethers.provider);
     });
 
-    it("should execute two-parameter hook with cacheNonce", async function () {
+    it("should execute zero-parameter hook without nodehash", async function () {
         const { executeHook } = await import("../../src/index.js");
         
-        const testData = ethers.toUtf8Bytes("Two param data");
-        // Store ABI-encoded bytes so decodeResult can decode them
-        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [testData]);
-        const node = namehash("test.eth");
-        await multiParamResolver.setData(node, encoded);
+        const testData = ethers.toUtf8Bytes("Global data");
+        // Store raw bytes - executeHook returns bytes directly
+        await zeroParameterHookTarget.setData(testData);
         
-        const functionSelector = computeSelector("dataWithOptions(bytes32,bytes32)");
-        const functionCall = "dataWithOptions(bytes32,bytes32)";
+        const functionSignature = "getData()";
+        const functionCall = "getData()";
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: Number(chainId),
-            address: await multiParamResolver.getAddress()
+            address: await zeroParameterHookTarget.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const decoded = await decodeHook(hookData);
         
         expect(decoded).to.not.be.null;
         
-        const cacheNonce = ethers.hexlify(ethers.randomBytes(32));
-        
         const result = await executeHook(decoded!, {
-            nodehash: node,
-            cacheNonce,
             providerMap
         });
         
@@ -302,96 +300,126 @@ describe("MultiParamResolver - Two-Parameter Hooks", function () {
         }
     });
 
-    it("should reject hook with 3 parameters", async function () {
-        const { validateHook } = await import("../../src/index.js");
+    it("should reject zero-parameter hook with nodehash provided", async function () {
+        const { executeHook } = await import("../../src/index.js");
         
-        const functionSelector = computeSelector("invalidFunc(bytes32,bytes32,bytes32)");
-        const functionCall = "invalidFunc(bytes32,bytes32,bytes32)";
+        const testData = ethers.toUtf8Bytes("Global data");
+        // Store raw bytes
+        await zeroParameterHookTarget.setData(testData);
+        
+        const functionSignature = "getData()";
+        const functionCall = "getData()";
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: Number(chainId),
-            address: await multiParamResolver.getAddress()
+            address: await zeroParameterHookTarget.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const decoded = await decodeHook(hookData);
         
         expect(decoded).to.not.be.null;
         
+        const node = namehash("test.eth");
+        const result = await executeHook(decoded!, {
+            params: [node],
+            providerMap
+        });
+        
+        expect(result._tag).to.equal("HookExecutionError");
+        if (result._tag === "HookExecutionError") {
+            expect(result.message).to.include("Parameter count mismatch");
+        }
+    });
+
+    it("should reject one-parameter hook without nodehash", async function () {
+        const { executeHook } = await import("../../src/index.js");
+        
+        const functionSignature = "data(bytes32)";
+        const node = namehash("test.eth");
+        const functionCall = `data(${node})`;
+        const returnType = "(bytes)";
+        const target: EIP8121Target = {
+            chainId: Number(chainId),
+            address: await zeroParameterHookTarget.getAddress()
+        };
+        
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
+        const decoded = await decodeHook(hookData);
+        
+        expect(decoded).to.not.be.null;
+        
+        const result = await executeHook(decoded!, {
+            providerMap
+        });
+        
+        expect(result._tag).to.equal("HookExecutionError");
+        if (result._tag === "HookExecutionError") {
+            expect(result.message).to.include("Parameter count mismatch");
+        }
+    });
+
+    it("should reject hook with 2 parameters", async function () {
+        const { validateHook } = await import("../../src/index.js");
+        
+        const functionSignature = "getData(bytes32,bytes32)";
+        const functionCall = "getData(0x1234567890123456789012345678901234567890123456789012345678901234,0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd)";
+        const returnType = "(bytes)";
+        const target: EIP8121Target = {
+            chainId: Number(chainId),
+            address: await zeroParameterHookTarget.getAddress()
+        };
+        
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
+        const decoded = await decodeHook(hookData);
+        
+        expect(decoded).to.not.be.null;
+        
+        // With new format, 2 bytes32 parameters are now VALID
         const validation = validateHook(decoded!);
-        expect(validation.isValid).to.be.false;
-        expect(validation.error).to.include("Invalid parameter count");
+        expect(validation.isValid).to.be.true;
     });
 
     it("should reject hook with non-bytes32 parameter", async function () {
-        const { validateHook } = await import("../../src/index.js");
-        
-        const functionSelector = computeSelector("invalidFunc(bytes32,string)");
-        const functionCall = "invalidFunc(bytes32,string)";
+        // Now validation happens during encoding
+        const functionSignature = "invalidFunc(string)";
+        const functionCall = "invalidFunc('test')";
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: Number(chainId),
-            address: await multiParamResolver.getAddress()
+            address: await zeroParameterHookTarget.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
-        const decoded = await decodeHook(hookData);
-        
-        expect(decoded).to.not.be.null;
-        
-        const validation = validateHook(decoded!);
-        expect(validation.isValid).to.be.false;
-        expect(validation.error).to.include("Invalid parameter type");
+        // Should throw during encoding due to unsupported parameter type
+        try {
+            await encodeHook(functionSignature, functionCall, returnType, target);
+            expect.fail("Should have thrown on unsupported parameter type");
+        } catch (error: any) {
+            expect(error.message).to.include("Unsupported parameter type: string");
+        }
     });
 
-    it("should verify different cacheNonce produces different hook encoding", async function () {
-        const functionSelector1 = computeSelector("dataWithOptions(bytes32,bytes32)");
-        const functionCall1 = "dataWithOptions(bytes32,bytes32)";
-        const returnType = "(bytes)";
-        const target: EIP8121Target = {
-            chainId: Number(chainId),
-            address: await multiParamResolver.getAddress()
-        };
-        
-        const hookData1 = await encodeHook(functionSelector1, functionCall1, returnType, target);
-        
-        // Single-parameter version has different selector
-        const functionSelector2 = computeSelector("data(bytes32)");
-        const functionCall2 = "data(bytes32)";
-        
-        const hookData2 = await encodeHook(functionSelector2, functionCall2, returnType, target);
-        
-        // Different function signatures produce different encoded hooks
-        expect(hookData1).to.not.equal(hookData2);
-    });
-
-    it("should handle empty data with cacheNonce", async function () {
+    it("should handle empty global data", async function () {
         const { executeHook } = await import("../../src/index.js");
         
-        const node = namehash("test.eth");
         const emptyData = "0x";
-        // Store ABI-encoded bytes so decodeResult can decode them
-        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [emptyData]);
-        await multiParamResolver.setData(node, encoded);
+        // Store raw empty bytes - executeHook returns bytes directly (no double-decode)
+        await zeroParameterHookTarget.setData(emptyData);
         
-        const functionSelector = computeSelector("dataWithOptions(bytes32,bytes32)");
-        const functionCall = "dataWithOptions(bytes32,bytes32)";
+        const functionSignature = "getData()";
+        const functionCall = "getData()";
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: Number(chainId),
-            address: await multiParamResolver.getAddress()
+            address: await zeroParameterHookTarget.getAddress()
         };
         
-        const hookData = await encodeHook(functionSelector, functionCall, returnType, target);
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
         const decoded = await decodeHook(hookData);
         
         expect(decoded).to.not.be.null;
         
-        const cacheNonce = ethers.hexlify(ethers.randomBytes(32));
-        
         const result = await executeHook(decoded!, {
-            nodehash: node,
-            cacheNonce,
             providerMap
         });
         

@@ -2,36 +2,20 @@ import { Contract, Provider, AbiCoder } from "ethers";
 import { 
     DecodedEIP8121Hook, 
     computeSelector,
-    parseFunctionCall,
-    parseFunctionSignature,
+    extractFunctionName,
+    parseParameterTypes,
     isEIP8121Hook,
-    isEIP8121HookString,
-    decodeHook,
-    decodeHookString
+    decodeHook
 } from "./encoding.js";
 import { TrustedTargets, verifyTrustedTarget } from "./trust.js";
 
-// ============================================================================
-// EIP-8121 Types
-// ============================================================================
-
-/**
- * Map of chain IDs to Ethereum providers.
- * Callers must provide this to enable cross-chain hook execution.
- */
 export type ProviderMap = Map<number | bigint, Provider>;
 
-/**
- * Result of successful hook execution.
- */
 export interface HookExecutionResult {
     _tag: "HookExecutionResult";
     data: string;
 }
 
-/**
- * Error during hook execution.
- */
 export interface HookExecutionError {
     _tag: "HookExecutionError";
     error: true;
@@ -41,75 +25,24 @@ export interface HookExecutionError {
 
 export type ExecutionResult = HookExecutionResult | HookExecutionError;
 
-/**
- * Result of hook validation.
- */
 export interface HookValidationResult {
     isValid: boolean;
     error?: string;
 }
 
-// ============================================================================
-// EIP-8121 Hook Execution
-// ============================================================================
-
 /**
- * Validates an EIP-8121 hook by verifying the selector matches the function signature
- * and ensuring parameters meet requirements:
- * - 1 or 2 parameters allowed
- * - All parameters must be bytes32 type
- * @param hook - The decoded hook to validate
- * @returns Validation result with isValid flag and optional error message
+ * Validates an EIP-8121 hook.
+ * Checks: 0-2 fixed-size primitive parameters, (bytes) return type.
  */
 export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
     try {
-        const match = hook.functionCall.match(/^(\w+\([^)]*\))/);
+        // Validate function signature and parameters
+        const params = parseParameterTypes(hook.functionSignature);
         
-        if (!match) {
-            return {
-                isValid: false,
-                error: "Invalid function call format"
-            };
-        }
+        // Compute expected selector from signature
+        const expectedSelector = computeSelector(hook.functionSignature);
         
-        const functionSignature = match[1];
-        const expectedSelector = computeSelector(functionSignature);
-        
-        if (hook.functionSelector.toLowerCase() !== expectedSelector.toLowerCase()) {
-            return {
-                isValid: false,
-                error: `Selector mismatch: expected ${expectedSelector}, got ${hook.functionSelector}`
-            };
-        }
-        
-        // Parse and validate parameters
-        const params = parseFunctionSignature(functionSignature);
-        if (params === null) {
-            return {
-                isValid: false,
-                error: "Failed to parse function signature"
-            };
-        }
-        
-        // Enforce parameter count: 1 or 2 parameters allowed
-        if (params.length < 1 || params.length > 2) {
-            return {
-                isValid: false,
-                error: `Invalid parameter count: expected 1 or 2 parameters, got ${params.length}`
-            };
-        }
-        
-        // Enforce bytes32 type for all parameters
-        for (let i = 0; i < params.length; i++) {
-            if (params[i] !== 'bytes32') {
-                return {
-                    isValid: false,
-                    error: `Invalid parameter type at position ${i}: expected bytes32, got ${params[i]}`
-                };
-            }
-        }
-        
-        // Enforce bytes return type only
+        // Validate return type
         if (hook.returnType !== '(bytes)') {
             return {
                 isValid: false,
@@ -127,68 +60,51 @@ export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
 }
 
 /**
- * Decodes the ABI-encoded bytes returned from a Solidity function.
- * This implementation only supports (bytes) return type.
- * Solidity functions that return bytes actually return ABI-encoded bytes,
- * so we need to decode them to extract the inner bytes value.
- * @param resultBytes - The ABI-encoded result bytes from the hook execution
- * @param returnType - The return type in Solidity tuple notation (must be "(bytes)")
- * @returns The decoded bytes as a hex string
+ * Decodes result from hook execution.
+ * Note: ethers already ABI-decodes the return value, so we just validate and return.
  */
 export function decodeResult(resultBytes: string, returnType: string): string {
     if (returnType !== '(bytes)') {
         throw new Error(`Invalid return type: expected (bytes), got ${returnType}`);
     }
     
-    // ABI-decode the bytes to extract the inner bytes value
-    const decoded = AbiCoder.defaultAbiCoder().decode(["bytes"], resultBytes);
-    return decoded[0];
+    // ethers already decoded the bytes return value
+    return resultBytes;
 }
 
-/**
- * Options for hook execution
- */
-export interface ExecuteHookOptions {
-    /**
-     * The bytes32 nodehash parameter to pass to the function (required)
-     */
-    nodehash: string;
-    
-    /**
-     * Optional bytes32 cacheNonce parameter for cache-busting.
-     * Only has semantic functionality - changes the contenthash hash for external readers.
-     */
-    cacheNonce?: string;
-    
-    /**
-     * Map of chain IDs to providers for cross-chain calls (required)
-     */
+export interface ExecuteHookOptionsBase {
     providerMap: ProviderMap;
-    
-    /**
-     * Optional trusted targets configuration.
-     * If provided, the hook target will be verified against this list.
-     */
     trustedTargets?: TrustedTargets;
-    
-    /**
-     * If true, throws an error when target is not trusted.
-     * If false, returns an error result instead.
-     * Default: false
-     */
     throwOnUntrusted?: boolean;
 }
 
-/**
- * Executes an EIP-8121 hook by calling the target function directly.
- * This implementation supports functions with up to 2 bytes32 parameters:
- * - nodehash (required): The primary bytes32 parameter
- * - cacheNonce (optional): A bytes32 cache-busting parameter
- * 
- * @param hook - The decoded EIP-8121 hook
- * @param options - Execution options including nodehash, optional cacheNonce, providerMap, and trust verification
- * @returns The decoded result or an error
- */
+export interface ExecuteHookOptionsNoParams extends ExecuteHookOptionsBase {}
+
+export interface ExecuteHookOptionsOneParam extends ExecuteHookOptionsBase {
+    params: [string]; // single parameter value
+}
+
+export interface ExecuteHookOptionsTwoParams extends ExecuteHookOptionsBase {
+    params: [string, string]; // two parameter values
+}
+
+export type ExecuteHookOptions = ExecuteHookOptionsNoParams | ExecuteHookOptionsOneParam | ExecuteHookOptionsTwoParams;
+
+export async function executeHook(
+    hook: DecodedEIP8121Hook,
+    options: ExecuteHookOptionsNoParams
+): Promise<ExecutionResult>;
+
+export async function executeHook(
+    hook: DecodedEIP8121Hook,
+    options: ExecuteHookOptionsOneParam
+): Promise<ExecutionResult>;
+
+export async function executeHook(
+    hook: DecodedEIP8121Hook,
+    options: ExecuteHookOptionsTwoParams
+): Promise<ExecutionResult>;
+
 export async function executeHook(
     hook: DecodedEIP8121Hook,
     options: ExecuteHookOptions
@@ -227,20 +143,20 @@ export async function executeHook(
             };
         }
         
-        const functionName = parseFunctionCall(hook.functionCall);
+        const functionName = extractFunctionName(hook.functionSignature);
+        const params = parseParameterTypes(hook.functionSignature);
         
-        const signatureMatch = hook.functionCall.match(/^(\w+\([^)]*\))/);
-        if (!signatureMatch) {
+        const providedParams = 'params' in options ? options.params.length : 0;
+        
+        if (params.length !== providedParams) {
             return {
                 _tag: "HookExecutionError",
                 error: true,
-                message: "Invalid function call format"
+                message: `Parameter count mismatch: function requires ${params.length} parameters but ${providedParams} were provided`
             };
         }
         
-        const functionSignature = signatureMatch[1];
-        
-        const abi = [`function ${functionSignature} view returns (bytes)`];
+        const abi = [`function ${hook.functionSignature} view returns (bytes)`];
         
         const contract = new Contract(
             hook.target.address,
@@ -248,15 +164,9 @@ export async function executeHook(
             provider
         );
         
-        // Build parameters array: nodehash is required, cacheNonce is optional
-        const params = [options.nodehash];
-        if (options.cacheNonce !== undefined) {
-            params.push(options.cacheNonce);
-        }
+        const callParams: string[] = 'params' in options ? options.params : [];
         
-        const resultBytes = await contract[functionName](...params);
-        
-        // Validate return type and pass through bytes result
+        const resultBytes = await contract[functionName](...callParams);
         const result = decodeResult(resultBytes, hook.returnType);
         
         return {
@@ -273,18 +183,9 @@ export async function executeHook(
     }
 }
 
-/**
- * Detects and decodes a hook from either bytes or string format.
- * @param data - The data that may contain a hook
- * @returns The decoded hook, or null if not a valid hook
- */
 export async function detectAndDecodeHook(data: string): Promise<DecodedEIP8121Hook | null> {
     if (isEIP8121Hook(data)) {
         return await decodeHook(data);
-    }
-    
-    if (isEIP8121HookString(data)) {
-        return await decodeHookString(data);
     }
     
     return null;

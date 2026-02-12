@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3](https://github.com/ethlimo/ens-hooks/compare/v3.0.2...v3.0.3) (2026-02-12)
+
+
+### Bug Fixes
+
+* remove old exports ([#32](https://github.com/ethlimo/ens-hooks/issues/32)) ([64637cb](https://github.com/ethlimo/ens-hooks/commit/64637cbec117f196a8921ab8a8c4f82c1a576159))
+
 ## [3.0.2](https://github.com/ethlimo/ens-hooks/compare/v3.0.1...v3.0.2) (2026-02-12)
 
 

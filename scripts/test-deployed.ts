@@ -98,15 +98,15 @@ async function main() {
             // Execute hook based on parameter count
             let result;
             if (paramTypes.length === 0) {
-                result = await executeHook(decoded, { providerMap });
+                result = await executeHook(decoded, { params: [], providerMap });
             } else if (paramTypes.length === 1) {
                 result = await executeHook(decoded, { 
-                    params: [namehash(ensName)] as [string], 
+                    params: [namehash(ensName)], 
                     providerMap 
                 });
             } else {
                 result = await executeHook(decoded, { 
-                    params: [namehash(ensName), "0x0000000000000000000000000000000000000000000000000000000000000000"] as [string, string], 
+                    params: [namehash(ensName), "0x0000000000000000000000000000000000000000000000000000000000000000"], 
                     providerMap 
                 });
             }

@@ -291,6 +291,7 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         expect(decoded).to.not.be.null;
         
         const result = await executeHook(decoded!, {
+            params: [],
             providerMap
         });
         
@@ -350,6 +351,7 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         expect(decoded).to.not.be.null;
         
         const result = await executeHook(decoded!, {
+            params: [],
             providerMap
         });
         
@@ -420,6 +422,7 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         expect(decoded).to.not.be.null;
         
         const result = await executeHook(decoded!, {
+            params: [],
             providerMap
         });
         

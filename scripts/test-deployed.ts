@@ -11,16 +11,8 @@ import {
 import { namehash } from "ethers";
 
 /**
- * Interactive script to test deployed resolver contracts on forked localhost.
- * 
- * This script:
- * 1. Deploys test resolvers
- * 2. Impersonates vitalik.eth owner to set contenthash
- * 3. Encodes hooks pointing to deployed contracts
- * 4. Sets contenthash to hooks
- * 5. Executes hooks using library functions
- * 
- * Run after deploying with: npm run deploy
+ * Test deployed resolvers.
+ * Run with: npm run deploy
  */
 async function main() {
     console.log("Testing deployed resolvers with ENS contenthash hooks...\n");
@@ -31,7 +23,7 @@ async function main() {
     
     // Use deployed contract addresses (update these after deployment)
     const dataResolverAddress = "0xd18595a8e5D7d1b14Ff1537Bf4E930a603BAAe18";
-    const multiParamResolverAddress = "0x18978acF54162a2ea9bA1eC162323E7DF72679fD";
+    const zeroParameterHookTargetAddress = "0x18978acF54162a2ea9bA1eC162323E7DF72679fD";
     
     const chainId = Number((await ethers.provider.getNetwork()).chainId);
     const testNode = namehash("test.eth");
@@ -40,7 +32,7 @@ async function main() {
     console.log("  Chain ID:", chainId);
     console.log("  Deployer:", deployer.address);
     console.log("  DataResolver:", dataResolverAddress);
-    console.log("  MultiParamResolver:", multiParamResolverAddress);
+    console.log("  ZeroParameterHookTarget:", zeroParameterHookTargetAddress);
     console.log();
     
     // Setup provider map for hook execution
@@ -96,26 +88,26 @@ async function main() {
     console.log();
     
     // ========================================================================
-    // Test 2: Two-Parameter Hook with cacheNonce
+    // Test 2: Zero-Parameter Hook (ownerOnly Global Data)
     // ========================================================================
-    console.log("=== Test 2: Two-Parameter Hook with cacheNonce ===");
+    console.log("=== Test 2: Zero-Parameter Hook ===" );
     
     const target2: EIP8121Target = {
         chainId: chainId,
-        address: multiParamResolverAddress
+        address: zeroParameterHookTargetAddress
     };
     
     const hook2Data = await encodeHook(
-        computeSelector("dataWithOptions(bytes32,bytes32)"),
-        "dataWithOptions(bytes32,bytes32)",
+        computeSelector("getData()"),
+        "getData()",
         "(bytes)",
         target2
     );
     
     // Wrap hook for contenthash
     const contenthash2 = encodeEIP8121HookForContenthash(hook2Data);
-    console.log("  Function:", "dataWithOptions(bytes32,bytes32)");
-    console.log("  Target:", multiParamResolverAddress);
+    console.log("  Function:", "getData()");
+    console.log("  Target:", zeroParameterHookTargetAddress);
     console.log("  Hook encoded:", hook2Data);
     console.log("  Contenthash:", ethers.hexlify(contenthash2));
     console.log();
@@ -126,14 +118,9 @@ async function main() {
         throw new Error("Failed to decode hook");
     }
     
-    const cacheNonce = "0x" + "1".repeat(64); // Example cache nonce
-    
-    console.log("  Executing hook with cacheNonce...");
-    console.log("  CacheNonce:", cacheNonce);
+    console.log("  Executing zero-parameter hook...");
     const result2 = await executeHook(decoded2, {
-        nodehash: testNode,
-        cacheNonce,
-        providerMap
+        providerMap  // No nodehash for 0-parameter functions
     });
     
     if (result2._tag === "HookExecutionResult") {
@@ -146,33 +133,29 @@ async function main() {
     console.log();
     
     // ========================================================================
-    // Test 3: Verify different cacheNonce values work
+    // Test 3: Verify parameter count validation
     // ========================================================================
-    console.log("=== Test 3: Different cacheNonce Values ===");
+    console.log("=== Test 3: Parameter Count Validation ===" );
     
-    const cacheNonce2 = "0x" + "2".repeat(64);
-    console.log("  Testing with different cacheNonce:", cacheNonce2);
+    console.log("  Testing zero-parameter hook with nodehash (should fail)...");
     
     const result3 = await executeHook(decoded2, {
-        nodehash: testNode,
-        cacheNonce: cacheNonce2,
+        nodehash: testNode,  // This should cause an error
         providerMap
     });
     
-    if (result3._tag === "HookExecutionResult") {
-        console.log("  Hook executed successfully with different cacheNonce");
-        console.log("  Result (hex):", ethers.hexlify(result3.data));
-        console.log("  Decoded (UTF-8):", ethers.toUtf8String(result3.data));
+    if (result3._tag === "HookExecutionError") {
+        console.log("  Validation correctly rejected:", result3.message);
     } else {
-        console.log("  Hook execution failed:", result3.message);
+        console.log("  Unexpected success - validation should have failed");
     }
     console.log();
     
     console.log("All tests completed successfully!");
     console.log("\nSummary:");
-    console.log("  - Single-parameter hook encoded and executed");
-    console.log("  - Two-parameter hook encoded and executed");
-    console.log("  - Cache nonce parameter validated");
+    console.log("  - One-parameter hook encoded and executed");
+    console.log("  - Zero-parameter hook encoded and executed");
+    console.log("  - Parameter count validation verified");
     console.log("\nNote: On a real forked network, you would impersonate ENS name owners");
     console.log("   to set contenthash. This demo shows the hook execution flow.");
 }

@@ -7,16 +7,11 @@ import {
 } from "../src/index.js";
 import { ethers, namehash } from "ethers";
 import DataResolverModule from "../ignition/modules/DataResolver.js";
-import MultiParamResolverModule from "../ignition/modules/MultiParamResolver.js";
+import ZeroParameterHookTargetModule from "../ignition/modules/ZeroParameterHookTarget.js";
 
 /**
- * Deploy resolver contracts to a testnet and provide instructions for setup.
- * 
- * This script:
- * 1. Deploys DataResolver and MultiParamResolver
- * 2. Sets up initial test data
- * 3. Encodes hooks for both contracts
- * 4. Outputs instructions for setting ENS contenthash
+ * Deploy resolvers to testnet.
+ * Outputs hooks and instructions for ENS contenthash setup.
  */
 
 async function getEnsNameResolver(ensName: string, signer: ethers.Signer) {
@@ -58,16 +53,16 @@ async function main() {
     // Deploy contracts
     console.log("Deploying DataResolver...");
     const { dataResolver } = await (connection as any).ignition.deploy(DataResolverModule);
-    console.log("Deploying MultiParamResolver...");
-    const { multiParamResolver } = await (connection as any).ignition.deploy(MultiParamResolverModule);
+    console.log("Deploying ZeroParameterHookTarget...");
+    const { zeroParameterHookTarget } = await (connection as any).ignition.deploy(ZeroParameterHookTargetModule);
     
     const dataResolverAddress = await dataResolver.getAddress();
-    const multiParamResolverAddress = await multiParamResolver.getAddress();
+    const zeroParameterHookTargetAddress = await zeroParameterHookTarget.getAddress();
     
     console.log("Deployment successful!\n");
     console.log("Contract Addresses:");
     console.log("  DataResolver:", dataResolverAddress);
-    console.log("  MultiParamResolver:", multiParamResolverAddress);
+    console.log("  ZeroParameterHookTarget:", zeroParameterHookTargetAddress);
     console.log();
     
     // Setup test data
@@ -82,11 +77,9 @@ async function main() {
     await tx1.wait();
     console.log("  DataResolver test data set");
     
-    const tx2ensname = "multiparam-" + testNode;
-    const tx2namehash = namehash(tx2ensname);
-    const tx2 = await multiParamResolver.setData(tx2namehash, encodedData);
+    const tx2 = await zeroParameterHookTarget.setData(encodedData);
     await tx2.wait();
-    console.log("  MultiParamResolver test data set");
+    console.log("  ZeroParameterHookTarget test data set");
     console.log();
     
     // ========================================================================
@@ -96,7 +89,7 @@ async function main() {
     console.log("Generating Hooks and Contenthash Values:\n");
     
     // Single-parameter hook
-    console.log("=== DataResolver (Single Parameter) ===");
+    console.log("=== DataResolver (One Parameter) ===");
     const target1: EIP8121Target = {
         chainId: chainId,
         address: dataResolverAddress
@@ -117,23 +110,23 @@ async function main() {
 
     console.log();
     
-    // Two-parameter hook
-    console.log("=== MultiParamResolver (Two Parameters) ===");
+    // Zero-parameter hook
+    console.log("=== ZeroParameterHookTarget (Zero Parameters) ===");
     const target2: EIP8121Target = {
         chainId: chainId,
-        address: multiParamResolverAddress
+        address: zeroParameterHookTargetAddress
     };
     
     const hook2Data = await encodeHook(
-        computeSelector("dataWithOptions(bytes32,bytes32)"),
-        "dataWithOptions(bytes32,bytes32)",
+        computeSelector("getData()"),
+        "getData()",
         "(bytes)",
         target2
     );
     
     const contenthash2 = encodeEIP8121HookForContenthash(hook2Data);
     
-    console.log("Function Signature:", "dataWithOptions(bytes32,bytes32)");
+    console.log("Function Signature:", "getData()");
     console.log("Hook Data:", hook2Data);
     console.log("Contenthash:", ethers.hexlify(contenthash2));
     console.log();

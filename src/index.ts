@@ -1,7 +1,3 @@
-// ============================================================================
-// EIP-8121 Hook API
-// ============================================================================
-
 export { 
     executeHook,
     validateHook,
@@ -12,32 +8,31 @@ export {
     type HookExecutionError,
     type ExecutionResult,
     type HookValidationResult,
-    type ExecuteHookOptions
+    type ExecuteHookOptions,
+    type ExecuteHookOptionsNoParams,
+    type ExecuteHookOptionsOneParam,
+    type ExecuteHookOptionsTwoParams
 } from "./dataurl/index.js";
 
 export {
     encodeHook,
     decodeHook,
-    encodeHookString,
-    decodeHookString,
     computeSelector,
-    parseFunctionCall,
-    parseFunctionSignature,
+    extractFunctionName,
+    parseParameterTypes,
     encodeERC7930Target,
     decodeERC7930Target,
     isEIP8121Hook,
-    isEIP8121HookString,
+    isFixedSizePrimitive,
+    validateFunctionCallMatchesSignature,
     type DecodedEIP8121Hook,
-    type EIP8121Target
+    type EIP8121Target,
+    type HookParameter
 } from "./dataurl/encoding.js";
 
 export {
     HOOK_SELECTOR
 } from "./dataurl/constants.js";
-
-// ============================================================================
-// Trust Verification
-// ============================================================================
 
 export {
     verifyTrustedTarget,
@@ -46,10 +41,6 @@ export {
     type TrustedTarget,
     type TrustedTargets
 } from "./dataurl/trust.js";
-
-// ============================================================================
-// Contenthash Support
-// ============================================================================
 
 export {
     encodeDataUri,

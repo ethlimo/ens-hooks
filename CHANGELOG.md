@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/ethlimo/ens-hooks/compare/v3.0.0...v3.0.1) (2026-02-12)
+
+
+### Bug Fixes
+
+* simplify params type ([#25](https://github.com/ethlimo/ens-hooks/issues/25)) ([2435cee](https://github.com/ethlimo/ens-hooks/commit/2435cee71649615092d95e74dbd9a1adf83416de))
+
 ## [3.0.0](https://github.com/ethlimo/ens-hooks/compare/v2.1.0...v3.0.0) (2026-02-12)
 
 

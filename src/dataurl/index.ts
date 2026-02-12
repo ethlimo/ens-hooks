@@ -39,6 +39,14 @@ export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
         // Validate function signature and parameters
         const params = parseParameterTypes(hook.functionSignature);
         
+        // Validate parameter count (0-2 allowed)
+        if (params.length > 2) {
+            return {
+                isValid: false,
+                error: `Too many parameters: expected 0-2, got ${params.length}`
+            };
+        }
+        
         // Compute expected selector from signature
         const expectedSelector = computeSelector(hook.functionSignature);
         
@@ -72,38 +80,12 @@ export function decodeResult(resultBytes: string, returnType: string): string {
     return resultBytes;
 }
 
-export interface ExecuteHookOptionsBase {
+export interface ExecuteHookOptions {
+    params: string[];
     providerMap: ProviderMap;
     trustedTargets?: TrustedTargets;
     throwOnUntrusted?: boolean;
 }
-
-export interface ExecuteHookOptionsNoParams extends ExecuteHookOptionsBase {}
-
-export interface ExecuteHookOptionsOneParam extends ExecuteHookOptionsBase {
-    params: [string]; // single parameter value
-}
-
-export interface ExecuteHookOptionsTwoParams extends ExecuteHookOptionsBase {
-    params: [string, string]; // two parameter values
-}
-
-export type ExecuteHookOptions = ExecuteHookOptionsNoParams | ExecuteHookOptionsOneParam | ExecuteHookOptionsTwoParams;
-
-export async function executeHook(
-    hook: DecodedEIP8121Hook,
-    options: ExecuteHookOptionsNoParams
-): Promise<ExecutionResult>;
-
-export async function executeHook(
-    hook: DecodedEIP8121Hook,
-    options: ExecuteHookOptionsOneParam
-): Promise<ExecutionResult>;
-
-export async function executeHook(
-    hook: DecodedEIP8121Hook,
-    options: ExecuteHookOptionsTwoParams
-): Promise<ExecutionResult>;
 
 export async function executeHook(
     hook: DecodedEIP8121Hook,
@@ -146,13 +128,11 @@ export async function executeHook(
         const functionName = extractFunctionName(hook.functionSignature);
         const params = parseParameterTypes(hook.functionSignature);
         
-        const providedParams = 'params' in options ? options.params.length : 0;
-        
-        if (params.length !== providedParams) {
+        if (params.length !== options.params.length) {
             return {
                 _tag: "HookExecutionError",
                 error: true,
-                message: `Parameter count mismatch: function requires ${params.length} parameters but ${providedParams} were provided`
+                message: `Parameter count mismatch: function requires ${params.length} parameters but ${options.params.length} were provided`
             };
         }
         
@@ -164,9 +144,7 @@ export async function executeHook(
             provider
         );
         
-        const callParams: string[] = 'params' in options ? options.params : [];
-        
-        const resultBytes = await contract[functionName](...callParams);
+        const resultBytes = await contract[functionName](...options.params);
         const result = decodeResult(resultBytes, hook.returnType);
         
         return {

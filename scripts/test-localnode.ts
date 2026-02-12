@@ -233,15 +233,15 @@ async function main() {
             // Execute hook based on param count
             let result;
             if (testCase.params.length === 0) {
-                result = await executeHook(decoded, { providerMap });
+                result = await executeHook(decoded, { providerMap, params: [] });
             } else if (testCase.params.length === 1) {
                 result = await executeHook(decoded, { 
-                    params: [String(testCase.params[0])] as [string], 
+                    params: [String(testCase.params[0])], 
                     providerMap 
                 });
             } else {
                 result = await executeHook(decoded, { 
-                    params: [String(testCase.params[0]), String(testCase.params[1])] as [string, string], 
+                    params: [String(testCase.params[0]), String(testCase.params[1])], 
                     providerMap 
                 });
             }

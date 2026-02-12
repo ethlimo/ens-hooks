@@ -1,7 +1,6 @@
 import hre from "hardhat";
 import { 
     encodeHook, 
-    computeSelector, 
     encodeEIP8121HookForContenthash,
     type EIP8121Target 
 } from "../src/index.js";
@@ -10,44 +9,41 @@ import DataResolverModule from "../ignition/modules/DataResolver.js";
 import ZeroParameterHookTargetModule from "../ignition/modules/ZeroParameterHookTarget.js";
 
 /**
- * Deploy resolvers to testnet.
- * Outputs hooks and instructions for ENS contenthash setup.
+ * Deploy resolvers to testnet and set up ENS contenthash hooks.
  */
 
-async function getEnsNameResolver(ensName: string, signer: ethers.Signer) {
-    const registryAddress = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"; // ENS Registry
-    const registryAbi = [
-        "function resolver(bytes32 node) view returns (address)"
-    ];
+const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+const BASE_NAME = "weaken-home-truth-plan-9.eth";
+
+async function getEnsResolver(ensName: string, signer: ethers.Signer) {
+    const registryAbi = ["function resolver(bytes32 node) view returns (address)"];
     const resolverAbi = [
         "function setContenthash(bytes32 node, bytes calldata hash) external",
         "function contenthash(bytes32 node) view returns (bytes memory)"
     ];
     
-    const registryContract = new ethers.Contract(registryAddress, registryAbi, signer);
+    const registry = new ethers.Contract(ENS_REGISTRY, registryAbi, signer);
     const node = namehash(ensName);
-    const resolverAddress = await registryContract.resolver(node);
-    const resolverContract = new ethers.Contract(resolverAddress, resolverAbi, signer);
+    const resolverAddress = await registry.resolver(node);
     
-    return resolverContract;
+    return new ethers.Contract(resolverAddress, resolverAbi, signer);
 }
 
 async function main() {
     console.log("Deploying resolver contracts to testnet...\n");
     
     const connection = await hre.network.connect();
-    const ethers = (connection as any).ethers;
+    const hreEthers = (connection as any).ethers;
     
-    // Get network info
-    const network = await ethers.provider.getNetwork();
+    const network = await hreEthers.provider.getNetwork();
     const chainId = Number(network.chainId);
-    const [deployer] = await ethers.getSigners();
+    const [deployer] = await hreEthers.getSigners();
     
     console.log("Network Info:");
     console.log("  Network:", network.name);
     console.log("  Chain ID:", chainId);
     console.log("  Deployer:", deployer.address);
-    console.log("  Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
+    console.log("  Balance:", hreEthers.formatEther(await hreEthers.provider.getBalance(deployer.address)), "ETH");
     console.log();
     
     // Deploy contracts
@@ -59,7 +55,7 @@ async function main() {
     const dataResolverAddress = await dataResolver.getAddress();
     const zeroParameterHookTargetAddress = await zeroParameterHookTarget.getAddress();
     
-    console.log("Deployment successful!\n");
+    console.log("\nDeployment successful!");
     console.log("Contract Addresses:");
     console.log("  DataResolver:", dataResolverAddress);
     console.log("  ZeroParameterHookTarget:", zeroParameterHookTargetAddress);
@@ -67,104 +63,58 @@ async function main() {
     
     // Setup test data
     console.log("Setting up test data...");
-    const testNode = "weaken-home-truth-plan-9.eth";
-    const testData = ethers.toUtf8Bytes("Hello from EIP-8121 on testnet!");
-    const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [testData]);
+    const testData = hreEthers.toUtf8Bytes("Hello from EIP-8121 on testnet!");
     
-    const tx1ensname = "singleparam-" + testNode;
-    const tx1namehash = namehash(tx1ensname);
-    const tx1 = await dataResolver.setData(tx1namehash, encodedData);
+    const singleParamName = "singleparam-" + BASE_NAME;
+    const singleParamNode = namehash(singleParamName);
+    const tx1 = await dataResolver.setData(singleParamNode, testData);
     await tx1.wait();
-    console.log("  DataResolver test data set");
+    console.log("  DataResolver data set for", singleParamName);
     
-    const tx2 = await zeroParameterHookTarget.setData(encodedData);
+    const tx2 = await zeroParameterHookTarget.setData(testData);
     await tx2.wait();
-    console.log("  ZeroParameterHookTarget test data set");
+    console.log("  ZeroParameterHookTarget global data set");
     console.log();
     
-    // ========================================================================
-    // Generate hooks and contenthash values
-    // ========================================================================
-    
-    console.log("Generating Hooks and Contenthash Values:\n");
+    // Generate hooks
+    console.log("Generating hooks...\n");
     
     // Single-parameter hook
-    console.log("=== DataResolver (One Parameter) ===");
-    const target1: EIP8121Target = {
-        chainId: chainId,
-        address: dataResolverAddress
-    };
-    
-    const hook1Data = await encodeHook(
-        computeSelector("data(bytes32)"),
-        "data(bytes32)",
-        "(bytes)",
-        target1
-    );
-    
+    const target1: EIP8121Target = { chainId, address: dataResolverAddress };
+    const hook1Data = await encodeHook("data(bytes32)", `data(${singleParamNode})`, "(bytes)", target1);
     const contenthash1 = encodeEIP8121HookForContenthash(hook1Data);
     
-    console.log("Function Signature:", "data(bytes32)");
-    console.log("Hook Data:", hook1Data);
-    console.log("Contenthash:", ethers.hexlify(contenthash1));
-
+    console.log("=== DataResolver (1 param) ===");
+    console.log("  Name:", singleParamName);
+    console.log("  Function: data(bytes32)");
+    console.log("  Contenthash:", hreEthers.hexlify(contenthash1));
     console.log();
     
     // Zero-parameter hook
-    console.log("=== ZeroParameterHookTarget (Zero Parameters) ===");
-    const target2: EIP8121Target = {
-        chainId: chainId,
-        address: zeroParameterHookTargetAddress
-    };
-    
-    const hook2Data = await encodeHook(
-        computeSelector("getData()"),
-        "getData()",
-        "(bytes)",
-        target2
-    );
-    
+    const zeroParamName = "zeroparam-" + BASE_NAME;
+    const target2: EIP8121Target = { chainId, address: zeroParameterHookTargetAddress };
+    const hook2Data = await encodeHook("getData()", "getData()", "(bytes)", target2);
     const contenthash2 = encodeEIP8121HookForContenthash(hook2Data);
     
-    console.log("Function Signature:", "getData()");
-    console.log("Hook Data:", hook2Data);
-    console.log("Contenthash:", ethers.hexlify(contenthash2));
+    console.log("=== ZeroParameterHookTarget (0 params) ===");
+    console.log("  Name:", zeroParamName);
+    console.log("  Function: getData()");
+    console.log("  Contenthash:", hreEthers.hexlify(contenthash2));
     console.log();
     
-    // ========================================================================
-    // Instructions
-    // ========================================================================
+    // Set contenthash on ENS
+    console.log("Setting ENS contenthash...");
     
-    console.log("=".repeat(80));
-    console.log("NEXT STEPS");
-    console.log("=".repeat(80));
-    console.log();
+    const resolver1 = await getEnsResolver(singleParamName, deployer);
+    await resolver1.setContenthash(namehash(singleParamName), hreEthers.hexlify(contenthash1));
+    console.log("  Set for", singleParamName);
     
-    console.log("1. Store data on the deployed contracts using setData()");
-    console.log();
-    console.log("2. Set the contenthash on your ENS resolver to one of the values above");
-    console.log();
-    console.log("For Single-Parameter Hook:");
-    console.log(`  ${ethers.hexlify(contenthash1)}`);
-    console.log();
-    console.log("For Two-Parameter Hook:");
-    console.log(`  ${ethers.hexlify(contenthash2)}`);
-    console.log();
-    console.log("Encoding example:");
-    console.log("  const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(['bytes'], [yourData])");
-    console.log();
-    console.log("3. Query and execute the hook to retrieve stored data");
-    console.log();
+    const resolver2 = await getEnsResolver(zeroParamName, deployer);
+    await resolver2.setContenthash(namehash(zeroParamName), hreEthers.hexlify(contenthash2));
+    console.log("  Set for", zeroParamName);
     
-    console.log("=".repeat(80));
-    console.log("Deployment complete!");
-    console.log("=".repeat(80));
-
-    const resolver1 = await getEnsNameResolver("singleparam-" + testNode, deployer);
-    await resolver1.setContenthash(namehash("singleparam-" + testNode), ethers.hexlify(contenthash1));
-
-    const resolver2 = await getEnsNameResolver("multiparam-" + testNode, deployer);
-    await resolver2.setContenthash(namehash("multiparam-" + testNode), ethers.hexlify(contenthash2));
+    console.log("\nDeployment complete!");
+    console.log("Run test-deployed.ts to verify hooks work correctly.");
 }
 
 main().catch((error) => {

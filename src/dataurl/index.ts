@@ -59,13 +59,17 @@ export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
     }
 }
 
+/**
+ * Decodes result from hook execution.
+ * Note: ethers already ABI-decodes the return value, so we just validate and return.
+ */
 export function decodeResult(resultBytes: string, returnType: string): string {
     if (returnType !== '(bytes)') {
         throw new Error(`Invalid return type: expected (bytes), got ${returnType}`);
     }
     
-    const decoded = AbiCoder.defaultAbiCoder().decode(["bytes"], resultBytes);
-    return decoded[0];
+    // ethers already decoded the bytes return value
+    return resultBytes;
 }
 
 export interface ExecuteHookOptionsBase {

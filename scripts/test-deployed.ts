@@ -1,163 +1,133 @@
 import hre from "hardhat";
 import { 
-    encodeHook, 
     decodeHook, 
     executeHook,
-    computeSelector, 
-    encodeEIP8121HookForContenthash,
-    type EIP8121Target,
+    validateHook,
+    tryDecodeEIP8121HookFromContenthash,
     type ProviderMap 
 } from "../src/index.js";
-import { namehash } from "ethers";
+import { ethers, namehash } from "ethers";
+
+const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
 
 /**
- * Test deployed resolvers.
- * Run with: npm run deploy
+ * Test deployed hooks by querying ENS contenthash and following hooks.
  */
+
+async function getContenthash(ensName: string, provider: ethers.Provider): Promise<string | null> {
+    const registryAbi = ["function resolver(bytes32 node) view returns (address)"];
+    const resolverAbi = ["function contenthash(bytes32 node) view returns (bytes memory)"];
+    
+    const registry = new ethers.Contract(ENS_REGISTRY, registryAbi, provider);
+    const node = namehash(ensName);
+    
+    const resolverAddress = await registry.resolver(node);
+    if (resolverAddress === ethers.ZeroAddress) return null;
+    
+    const resolver = new ethers.Contract(resolverAddress, resolverAbi, provider);
+    const contenthash = await resolver.contenthash(node);
+    
+    return contenthash === "0x" ? null : contenthash;
+}
+
 async function main() {
-    console.log("Testing deployed resolvers with ENS contenthash hooks...\n");
+    console.log("Testing deployed hooks via ENS contenthash...\n");
     
     const connection = await hre.network.connect();
-    const ethers = (connection as any).ethers;
-    const [deployer] = await ethers.getSigners();
+    const hreEthers = (connection as any).ethers;
     
-    // Use deployed contract addresses (update these after deployment)
-    const dataResolverAddress = "0xd18595a8e5D7d1b14Ff1537Bf4E930a603BAAe18";
-    const zeroParameterHookTargetAddress = "0x18978acF54162a2ea9bA1eC162323E7DF72679fD";
-    
-    const chainId = Number((await ethers.provider.getNetwork()).chainId);
-    const testNode = namehash("test.eth");
+    const network = await hreEthers.provider.getNetwork();
+    const chainId = Number(network.chainId);
     
     console.log("Network Info:");
     console.log("  Chain ID:", chainId);
-    console.log("  Deployer:", deployer.address);
-    console.log("  DataResolver:", dataResolverAddress);
-    console.log("  ZeroParameterHookTarget:", zeroParameterHookTargetAddress);
+    console.log("  Network:", network.name);
     console.log();
     
-    // Setup provider map for hook execution
-    const providerMap: ProviderMap = new Map();
-    providerMap.set(chainId, ethers.provider);
+    const providerMap: ProviderMap = new Map([[chainId, hreEthers.provider]]);
     
-    // ========================================================================
-    // Test 1: Single-Parameter Hook on test.eth (using deployer)
-    // ========================================================================
-    console.log("=== Test 1: Single-Parameter Hook Setup ===");
+    // Test ENS names with hooks
+    const testNames = [
+        "singleparam-weaken-home-truth-plan-9.eth",
+        "multiparam-weaken-home-truth-plan-9.eth"
+    ];
     
-    // Encode hook for single-parameter function
-    const target1: EIP8121Target = {
-        chainId: chainId,
-        address: dataResolverAddress
-    };
+    let passed = 0;
+    let failed = 0;
     
-    const hook1Data = await encodeHook(
-        computeSelector("data(bytes32)"),
-        "data(bytes32)",
-        "(bytes)",
-        target1
-    );
-    
-    // Wrap hook for contenthash
-    const contenthash1 = encodeEIP8121HookForContenthash(hook1Data);
-    console.log("  Function:", "data(bytes32)");
-    console.log("  Target:", dataResolverAddress);
-    console.log("  Hook encoded:", hook1Data);
-    console.log("  Contenthash:", ethers.hexlify(contenthash1));
-    console.log();
-    
-    const decoded1 = await decodeHook(hook1Data);
-    
-    if (!decoded1) {
-        throw new Error("Failed to decode hook");
+    for (const ensName of testNames) {
+        console.log(`=== ${ensName} ===`);
+        
+        try {
+            // Query contenthash
+            const contenthash = await getContenthash(ensName, hreEthers.provider);
+            if (!contenthash) {
+                console.log("  No contenthash set");
+                continue;
+            }
+            console.log("  Contenthash:", contenthash.slice(0, 40) + "...");
+            
+            // Try to decode as EIP-8121 hook
+            const hookData = tryDecodeEIP8121HookFromContenthash(contenthash);
+            if (!hookData) {
+                console.log("  Not an EIP-8121 hook");
+                continue;
+            }
+            console.log("  Detected EIP-8121 hook");
+            
+            // Decode hook
+            const decoded = await decodeHook(hookData);
+            if (!decoded) {
+                throw new Error("Failed to decode hook");
+            }
+            console.log("  Function:", decoded.functionSignature);
+            console.log("  Target:", decoded.target.address);
+            console.log("  Chain:", decoded.target.chainId);
+            
+            // Validate hook
+            const validation = validateHook(decoded);
+            if (!validation.isValid) {
+                throw new Error(`Validation failed: ${validation.error}`);
+            }
+            console.log("  Validation: OK");
+            
+            // Determine params from function signature
+            const paramMatch = decoded.functionSignature.match(/\(([^)]*)\)/);
+            const paramTypes = paramMatch && paramMatch[1] ? paramMatch[1].split(",").filter(Boolean) : [];
+            
+            // Execute hook based on parameter count
+            let result;
+            if (paramTypes.length === 0) {
+                result = await executeHook(decoded, { providerMap });
+            } else if (paramTypes.length === 1) {
+                result = await executeHook(decoded, { 
+                    params: [namehash(ensName)] as [string], 
+                    providerMap 
+                });
+            } else {
+                result = await executeHook(decoded, { 
+                    params: [namehash(ensName), "0x0000000000000000000000000000000000000000000000000000000000000000"] as [string, string], 
+                    providerMap 
+                });
+            }
+            
+            if (result._tag === "HookExecutionResult") {
+                console.log("  Execution: OK");
+                console.log("  Result:", hreEthers.toUtf8String(result.data));
+                passed++;
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error: any) {
+            console.log("  Error:", error.message);
+            failed++;
+        }
+        console.log();
     }
     
-    console.log("  Executing hook for test.eth...");
-    const result1 = await executeHook(decoded1, {
-        nodehash: testNode,
-        providerMap
-    });
-    
-    if (result1._tag === "HookExecutionResult") {
-        console.log("  Hook executed successfully");
-        console.log("  Result (hex):", ethers.hexlify(result1.data));
-        // result.data is already the decoded bytes from executeHook
-        console.log("  Decoded (UTF-8):", ethers.toUtf8String(result1.data));
-    } else {
-        console.log("  Hook execution failed:", result1.message);
-    }
-    console.log();
-    
-    // ========================================================================
-    // Test 2: Zero-Parameter Hook (ownerOnly Global Data)
-    // ========================================================================
-    console.log("=== Test 2: Zero-Parameter Hook ===" );
-    
-    const target2: EIP8121Target = {
-        chainId: chainId,
-        address: zeroParameterHookTargetAddress
-    };
-    
-    const hook2Data = await encodeHook(
-        computeSelector("getData()"),
-        "getData()",
-        "(bytes)",
-        target2
-    );
-    
-    // Wrap hook for contenthash
-    const contenthash2 = encodeEIP8121HookForContenthash(hook2Data);
-    console.log("  Function:", "getData()");
-    console.log("  Target:", zeroParameterHookTargetAddress);
-    console.log("  Hook encoded:", hook2Data);
-    console.log("  Contenthash:", ethers.hexlify(contenthash2));
-    console.log();
-    
-    const decoded2 = await decodeHook(hook2Data);
-    
-    if (!decoded2) {
-        throw new Error("Failed to decode hook");
-    }
-    
-    console.log("  Executing zero-parameter hook...");
-    const result2 = await executeHook(decoded2, {
-        providerMap  // No nodehash for 0-parameter functions
-    });
-    
-    if (result2._tag === "HookExecutionResult") {
-        console.log("  Hook executed successfully");
-        console.log("  Result (hex):", ethers.hexlify(result2.data));
-        console.log("  Decoded (UTF-8):", ethers.toUtf8String(result2.data));
-    } else {
-        console.log("  Hook execution failed:", result2.message);
-    }
-    console.log();
-    
-    // ========================================================================
-    // Test 3: Verify parameter count validation
-    // ========================================================================
-    console.log("=== Test 3: Parameter Count Validation ===" );
-    
-    console.log("  Testing zero-parameter hook with nodehash (should fail)...");
-    
-    const result3 = await executeHook(decoded2, {
-        nodehash: testNode,  // This should cause an error
-        providerMap
-    });
-    
-    if (result3._tag === "HookExecutionError") {
-        console.log("  Validation correctly rejected:", result3.message);
-    } else {
-        console.log("  Unexpected success - validation should have failed");
-    }
-    console.log();
-    
-    console.log("All tests completed successfully!");
-    console.log("\nSummary:");
-    console.log("  - One-parameter hook encoded and executed");
-    console.log("  - Zero-parameter hook encoded and executed");
-    console.log("  - Parameter count validation verified");
-    console.log("\nNote: On a real forked network, you would impersonate ENS name owners");
-    console.log("   to set contenthash. This demo shows the hook execution flow.");
+    console.log("=".repeat(60));
+    console.log(`Results: ${passed} passed, ${failed} failed`);
+    console.log("=".repeat(60));
 }
 
 main().catch((error) => {

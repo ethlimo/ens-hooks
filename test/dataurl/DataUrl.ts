@@ -274,9 +274,8 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         const { executeHook } = await import("../../src/index.js");
         
         const testData = ethers.toUtf8Bytes("Global data");
-        // Store ABI-encoded bytes so decodeResult can decode them
-        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [testData]);
-        await zeroParameterHookTarget.setData(encoded);
+        // Store raw bytes - executeHook returns bytes directly
+        await zeroParameterHookTarget.setData(testData);
         
         const functionSignature = "getData()";
         const functionCall = "getData()";
@@ -305,8 +304,8 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         const { executeHook } = await import("../../src/index.js");
         
         const testData = ethers.toUtf8Bytes("Global data");
-        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [testData]);
-        await zeroParameterHookTarget.setData(encoded);
+        // Store raw bytes
+        await zeroParameterHookTarget.setData(testData);
         
         const functionSignature = "getData()";
         const functionCall = "getData()";
@@ -404,9 +403,8 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         const { executeHook } = await import("../../src/index.js");
         
         const emptyData = "0x";
-        // Store ABI-encoded bytes so decodeResult can decode them
-        const encoded = ethers.AbiCoder.defaultAbiCoder().encode(["bytes"], [emptyData]);
-        await zeroParameterHookTarget.setData(encoded);
+        // Store raw empty bytes - executeHook returns bytes directly (no double-decode)
+        await zeroParameterHookTarget.setData(emptyData);
         
         const functionSignature = "getData()";
         const functionCall = "getData()";

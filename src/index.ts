@@ -9,9 +9,6 @@ export {
     type ExecutionResult,
     type HookValidationResult,
     type ExecuteHookOptions,
-    type ExecuteHookOptionsNoParams,
-    type ExecuteHookOptionsOneParam,
-    type ExecuteHookOptionsTwoParams
 } from "./dataurl/index.js";
 
 export {

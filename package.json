@@ -58,7 +58,8 @@
   },
   "overrides": {
     "@ensdomains/buffer": "0.1.3",
-    "@openzeppelin/contracts": "4.9.6"
+    "@openzeppelin/contracts": "4.9.6",
+    "axios": ">=1.13.5 || <1.4.0"
   },
   "type": "module"
 }

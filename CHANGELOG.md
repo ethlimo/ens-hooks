@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.2](https://github.com/ethlimo/ens-hooks/compare/v3.0.1...v3.0.2) (2026-02-12)
+
+
+### Miscellaneous Chores
+
+* release 3.0.2 ([#27](https://github.com/ethlimo/ens-hooks/issues/27)) ([2d10d4f](https://github.com/ethlimo/ens-hooks/commit/2d10d4fb42db77909bb9afb521ee29262f7ea428))
+
 ## [3.0.1](https://github.com/ethlimo/ens-hooks/compare/v3.0.0...v3.0.1) (2026-02-12)
 
 

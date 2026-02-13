@@ -1,15 +1,15 @@
 import { Contract, Provider, AbiCoder } from "ethers";
 import { 
     DecodedEIP8121Hook, 
+    computeSelector,
     extractFunctionName,
     parseParameterTypes,
-    parseFunctionCallValues,
     isEIP8121Hook,
     decodeHook
 } from "./encoding.js";
 import { TrustedTargets, verifyTrustedTarget } from "./trust.js";
 
-export type ProviderMap = Map<number, Provider>;
+export type ProviderMap = Map<number | bigint, Provider>;
 
 export interface HookExecutionResult {
     _tag: "HookExecutionResult";
@@ -47,6 +47,9 @@ export function validateHook(hook: DecodedEIP8121Hook): HookValidationResult {
             };
         }
         
+        // Compute expected selector from signature
+        const expectedSelector = computeSelector(hook.functionSignature);
+        
         // Validate return type
         if (hook.returnType !== '(bytes)') {
             return {
@@ -78,6 +81,7 @@ export function decodeResult(resultBytes: string, returnType: string): string {
 }
 
 export interface ExecuteHookOptions {
+    params: string[];
     providerMap: ProviderMap;
     trustedTargets?: TrustedTargets;
     throwOnUntrusted?: boolean;
@@ -121,10 +125,16 @@ export async function executeHook(
             };
         }
         
-        // Parse parameter values from functionCall (with generic error messages for security)
-        const paramValues = parseFunctionCallValues(hook.functionCall, hook.functionSignature, false);
-        
         const functionName = extractFunctionName(hook.functionSignature);
+        const params = parseParameterTypes(hook.functionSignature);
+        
+        if (params.length !== options.params.length) {
+            return {
+                _tag: "HookExecutionError",
+                error: true,
+                message: `Parameter count mismatch: function requires ${params.length} parameters but ${options.params.length} were provided`
+            };
+        }
         
         const abi = [`function ${hook.functionSignature} view returns (bytes)`];
         
@@ -134,7 +144,7 @@ export async function executeHook(
             provider
         );
         
-        const resultBytes = await contract[functionName](...paramValues);
+        const resultBytes = await contract[functionName](...options.params);
         const result = decodeResult(resultBytes, hook.returnType);
         
         return {

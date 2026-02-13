@@ -18,6 +18,8 @@ const config: HardhatUserConfig & { verify: { etherscan: { apiKey: Configuration
       chainType: "l1",
       chainId: 1,
       forking: {
+        //use alchemy, infura wasn't supplying fork history for some reason
+        //BUG: run `npm run clean` after shutting down the node, there is an issue with follow-up runs where it loses fork history(?)
         url: configVariable("ETH_RPC_URL"),
         blockNumber: 23989360,
       },

@@ -5,7 +5,6 @@ import {
     encodeHook, 
     executeHook,
     decodeHook,
-    MAX_STRING_LENGTH,
     type ProviderMap 
 } from "../src/index.js";
 

@@ -36,7 +36,7 @@ describe("EIP-8121 DataResolver Integration", function () {
         // Create provider map for local network
         chainId = BigInt((await ethers.provider.getNetwork()).chainId);
         providerMap = new Map();
-        providerMap.set(chainId, ethers.provider);
+        providerMap.set(Number(chainId), ethers.provider);
     });
 
     it("should store and retrieve simple data", async function () {

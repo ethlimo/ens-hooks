@@ -6,10 +6,11 @@ on:
 
 jobs:
   validate-pr-title:
+    if: github.repository == 'ethlimo/ens-hooks'
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@v2
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2
         with:
           egress-policy: audit
       - name: PR Conventional Commit Validation

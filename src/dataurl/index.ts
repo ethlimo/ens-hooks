@@ -152,9 +152,13 @@ export async function executeHook(
 }
 
 export async function detectAndDecodeHook(data: string): Promise<DecodedEIP8121Hook | null> {
-    if (isEIP8121Hook(data)) {
-        return await decodeHook(data);
+    if (!isEIP8121Hook(data)) {
+        return null;
     }
     
-    return null;
+    const { tryDecodeEIP8121HookFromContenthash } = await import("./encoding.js");
+    const stripped = tryDecodeEIP8121HookFromContenthash(data);
+    const hookData = stripped ?? data;
+    
+    return await decodeHook(hookData);
 }

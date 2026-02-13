@@ -562,7 +562,25 @@ export async function decodeHook(data: string): Promise<DecodedEIP8121Hook | nul
 
 export function isEIP8121Hook(data: string): boolean {
     try {
-        return data.toLowerCase().startsWith(HOOK_SELECTOR.toLowerCase());
+        const lower = data.toLowerCase();
+        if (lower.startsWith(HOOK_SELECTOR.toLowerCase())) {
+            return true;
+        }
+        const bytes = getBytes(data);
+        if (bytes.length >= PROTOCODE_ETH_CALLDATA.length + 4) {
+            let hasProtocodePrefix = true;
+            for (let i = 0; i < PROTOCODE_ETH_CALLDATA.length; i++) {
+                if (bytes[i] !== PROTOCODE_ETH_CALLDATA[i]) {
+                    hasProtocodePrefix = false;
+                    break;
+                }
+            }
+            if (hasProtocodePrefix) {
+                const afterProtocol = ethers.hexlify(bytes.slice(PROTOCODE_ETH_CALLDATA.length));
+                return afterProtocol.toLowerCase().startsWith(HOOK_SELECTOR.toLowerCase());
+            }
+        }
+        return false;
     } catch {
         return false;
     }

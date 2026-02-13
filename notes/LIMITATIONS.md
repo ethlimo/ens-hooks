@@ -41,7 +41,7 @@ Only `bytes` return type supported. No complex tuples, nested arrays, or multi-v
 - Multi-chain execution
 - 0-2 parameters with fixed-size primitives and strings (max 512 chars)
 - Integer range validation for all uint/int types
-- Type-safe API with parameter arrays
+- Type-safe API deriving parameters from function call (no explicit parameter arrays)
 - Optional trust verification (array/set/function-based)
 - Strict function call syntax validation
 

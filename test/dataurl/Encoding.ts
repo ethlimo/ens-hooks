@@ -7,7 +7,6 @@ import {
     computeSelector,
     extractFunctionName,
     parseParameterTypes,
-    parseFunctionCallValues,
     isAllowedParameterType,
     validateFunctionCallMatchesSignature,
     encodeERC7930Target,
@@ -17,7 +16,6 @@ import {
     tryDecodeEIP8121HookFromContenthash,
     encodeDataUri,
     tryDecodeDataUri,
-    MAX_STRING_LENGTH,
     type EIP8121Target
 } from "../../src/dataurl/encoding.js";
 import { HOOK_SELECTOR } from "../../src/dataurl/constants.js";

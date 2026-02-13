@@ -310,7 +310,7 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         
         await expect(
             encodeHook(functionSignature, functionCall, returnType, target)
-        ).to.be.rejectedWith(/Parameter count mismatch/);
+        ).to.be.rejectedWith(/Function expects 0 parameters but call has parameters/);
     });
 
     it("should call one-parameter hook with encoded parameter", async function () {

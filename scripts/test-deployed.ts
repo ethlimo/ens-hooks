@@ -46,10 +46,10 @@ async function main() {
     
     const providerMap: ProviderMap = new Map([[chainId, hreEthers.provider]]);
     
-    // Test ENS names with hooks
+    // Test ENS names with hooks (subdomains)
     const testNames = [
-        "singleparam-weaken-home-truth-plan-9.eth",
-        "multiparam-weaken-home-truth-plan-9.eth"
+        "zeroparam.multiparam-weaken-home-truth-plan-9.eth",
+        "singleparam.multiparam-weaken-home-truth-plan-9.eth"
     ];
     
     let passed = 0;

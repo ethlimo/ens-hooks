@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.5](https://github.com/ethlimo/ens-hooks/compare/v3.0.4...v3.0.5) (2026-02-13)
+
+
+### Bug Fixes
+
+* correctly handle protocode prepended to hook ([#48](https://github.com/ethlimo/ens-hooks/issues/48)) ([31d2df9](https://github.com/ethlimo/ens-hooks/commit/31d2df96c6e1ef20d58e1938618a86e45fa1a074))
+
 ## [3.0.4](https://github.com/ethlimo/ens-hooks/compare/v3.0.3...v3.0.4) (2026-02-13)
 
 

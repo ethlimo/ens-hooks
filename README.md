@@ -17,11 +17,12 @@ This library implements [EIP-8121](./notes/EIP-8121.md) hooks, a specification f
 ## Scope
 
 This is a **focused implementation** for contenthash resolution. See [LIMITATIONS.md](./notes/LIMITATIONS.md) for scope restrictions:
-- 0-2 parameters of fixed-size primitives (bool, address, uintN, intN, bytesN)
+- 0-2 parameters of fixed-size primitives and strings (bool, address, uintN, intN, bytesN, string)
+- String parameters limited to 512 characters
 - EIP-155 chains only (EVM)
 - Bytes return type only
 - No recursive resolution
-- No struct or dynamic type support (string, bytes, arrays)
+- No struct or dynamic type support (dynamic bytes, arrays)
 - Requires ERC-3668 (CCIP-Read) enabled provider
 
 ## Installation
@@ -92,7 +93,7 @@ Hooks support functions with 0-2 parameters of fixed-size Solidity primitives:
     - A hash of the expected content (for integrity verification)
     - An autoincrement value (for cache invalidation in web gateways)
 
-**Supported Types:** `bool`, `address`, `uint8-256`, `int8-256`, `bytes1-32`
+**Supported Types:** `bool`, `address`, `uint8-256`, `int8-256`, `bytes1-32`, `string` (max 512 chars)
 
 ```typescript
 import { executeHook } from '@ethlimo/ens-hooks';

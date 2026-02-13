@@ -580,7 +580,8 @@ describe("FunctionCall Parser Tests", function() {
         });
 
         it("should accept max length decimal integer string (79 chars)", async function() {
-            // 79 chars is the max (78 digits + potential sign)
+            // Max length is 79 chars (78 digits for uint256, plus 1 for potential sign in int types)
+            // This test uses 79 digits which exceeds uint256 max but should pass length validation
             const maxLengthDecimal = "1".repeat(79);
             // This will fail range validation but should pass length check
             await expect(

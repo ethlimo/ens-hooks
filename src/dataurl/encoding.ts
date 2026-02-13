@@ -213,11 +213,7 @@ function validateIntegerRange(value: string, paramType: string, paramIndex: numb
     // Parse value as BigInt (handles both decimal and hex)
     let numValue: bigint;
     try {
-        if (isHex) {
-            numValue = BigInt(value);
-        } else {
-            numValue = BigInt(value);
-        }
+        numValue = BigInt(value);
     } catch {
         throw new Error(detailedErrors 
             ? `Parameter ${paramIndex + 1} (type ${paramType}): invalid number format`

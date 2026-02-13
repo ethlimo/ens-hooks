@@ -25,7 +25,6 @@ interface TestCase {
     name: string;
     signature: string;
     call: string;
-    params: any[];
     setter: string;
     setterArgs: any[];
 }
@@ -99,7 +98,6 @@ async function main() {
             name: "0 params",
             signature: "get0()",
             call: "get0()",
-            params: [],
             setter: "set0",
             setterArgs: []
         },
@@ -108,7 +106,6 @@ async function main() {
             name: "1 param (bytes32)",
             signature: "get1Bytes32(bytes32)",
             call: `get1Bytes32(${testBytes32})`,
-            params: [testBytes32],
             setter: "set1Bytes32",
             setterArgs: [testBytes32]
         },
@@ -117,7 +114,6 @@ async function main() {
             name: "1 param (address)",
             signature: "get1Address(address)",
             call: `get1Address(${testAddress})`,
-            params: [testAddress],
             setter: "set1Address",
             setterArgs: [testAddress]
         },
@@ -126,7 +122,6 @@ async function main() {
             name: "1 param (uint256)",
             signature: "get1Uint256(uint256)",
             call: `get1Uint256(${testUint256})`,
-            params: [testUint256],
             setter: "set1Uint256",
             setterArgs: [testUint256]
         },
@@ -135,7 +130,6 @@ async function main() {
             name: "1 param (bool)",
             signature: "get1Bool(bool)",
             call: `get1Bool(${testBool})`,
-            params: [true],
             setter: "set1Bool",
             setterArgs: [true]
         },
@@ -144,7 +138,6 @@ async function main() {
             name: "2 params (bytes32,bytes32)",
             signature: "get2Bytes32Bytes32(bytes32,bytes32)",
             call: `get2Bytes32Bytes32(${testBytes32},${testBytes32Alt})`,
-            params: [testBytes32, testBytes32Alt],
             setter: "set2Bytes32Bytes32",
             setterArgs: [testBytes32, testBytes32Alt]
         },
@@ -153,7 +146,6 @@ async function main() {
             name: "2 params (bytes32,uint256)",
             signature: "get2Bytes32Uint256(bytes32,uint256)",
             call: `get2Bytes32Uint256(${testBytes32},${testUint256})`,
-            params: [testBytes32, testUint256],
             setter: "set2Bytes32Uint256",
             setterArgs: [testBytes32, testUint256]
         },
@@ -162,7 +154,6 @@ async function main() {
             name: "2 params (bytes32,address)",
             signature: "get2Bytes32Address(bytes32,address)",
             call: `get2Bytes32Address(${testBytes32},${testAddress})`,
-            params: [testBytes32, testAddress],
             setter: "set2Bytes32Address",
             setterArgs: [testBytes32, testAddress]
         },
@@ -171,7 +162,6 @@ async function main() {
             name: "2 params (address,uint256)",
             signature: "get2AddressUint256(address,uint256)",
             call: `get2AddressUint256(${testAddress},${testUint256})`,
-            params: [testAddress, testUint256],
             setter: "set2AddressUint256",
             setterArgs: [testAddress, testUint256]
         },
@@ -180,7 +170,6 @@ async function main() {
             name: "2 params (uint256,uint256)",
             signature: "get2Uint256Uint256(uint256,uint256)",
             call: `get2Uint256Uint256(${testUint256},${testUint256Alt})`,
-            params: [testUint256, testUint256Alt],
             setter: "set2Uint256Uint256",
             setterArgs: [testUint256, testUint256Alt]
         },
@@ -189,7 +178,6 @@ async function main() {
             name: "2 params (bool,bytes32)",
             signature: "get2BoolBytes32(bool,bytes32)",
             call: `get2BoolBytes32(${testBool},${testBytes32})`,
-            params: [true, testBytes32],
             setter: "set2BoolBytes32",
             setterArgs: [true, testBytes32]
         }

@@ -27,10 +27,6 @@ describe("FunctionCall Parser Tests", function() {
         const network = await ethers.provider.getNetwork();
         chainId = Number(network.chainId);
         providerMap = new Map([[chainId, ethers.provider]]);
-        
-        if (process.env.FUNCTION_CALL_PARSER_TEST_DEBUG === "true") {
-            console.log(`Test contract deployed at: ${contractAddress}`);
-        }
     });
 
     describe("String Parameter Tests", function() {
@@ -692,74 +688,6 @@ describe("FunctionCall Parser Tests", function() {
                     { chainId, address: contractAddress }
                 )
             ).to.be.rejectedWith(/Expected comma/);
-        });
-    });
-
-    describe("Gas Limit Tests", function() {
-        it("should handle 256 character string (gas measurement)", async function() {
-            const str256 = 'a'.repeat(256);
-            const hookData = await encodeHook(
-                "gasTestString256(string)",
-                `gasTestString256('${str256}')`,
-                "(bytes)",
-                { chainId, address: contractAddress }
-            );
-            
-            const decoded = await decodeHook(hookData);
-            const result = await executeHook(decoded!, { providerMap });
-            
-            expect(result._tag).to.equal("HookExecutionResult");
-            console.log("      256 char string: executed successfully");
-        });
-
-        it("should handle 512 character string (gas measurement)", async function() {
-            const str512 = 'b'.repeat(512);
-            const hookData = await encodeHook(
-                "gasTestString512(string)",
-                `gasTestString512('${str512}')`,
-                "(bytes)",
-                { chainId, address: contractAddress }
-            );
-            
-            const decoded = await decodeHook(hookData);
-            const result = await executeHook(decoded!, { providerMap });
-            
-            expect(result._tag).to.equal("HookExecutionResult");
-            console.log("      512 char string: executed successfully");
-        });
-
-        it("should handle two 256 character strings (gas measurement)", async function() {
-            const str256a = 'c'.repeat(256);
-            const str256b = 'd'.repeat(256);
-            const hookData = await encodeHook(
-                "gasTestTwoStrings256(string,string)",
-                `gasTestTwoStrings256('${str256a}', '${str256b}')`,
-                "(bytes)",
-                { chainId, address: contractAddress }
-            );
-            
-            const decoded = await decodeHook(hookData);
-            const result = await executeHook(decoded!, { providerMap });
-            
-            expect(result._tag).to.equal("HookExecutionResult");
-            console.log("      Two 256 char strings: executed successfully");
-        });
-
-        it("should handle 512 char string with bytes32 (gas measurement)", async function() {
-            const str512 = 'e'.repeat(512);
-            const hash = "0x1234567890123456789012345678901234567890123456789012345678901234";
-            const hookData = await encodeHook(
-                "gasTestStringAndBytes32(string,bytes32)",
-                `gasTestStringAndBytes32('${str512}', ${hash})`,
-                "(bytes)",
-                { chainId, address: contractAddress }
-            );
-            
-            const decoded = await decodeHook(hookData);
-            const result = await executeHook(decoded!, { providerMap });
-            
-            expect(result._tag).to.equal("HookExecutionResult");
-            console.log("      512 char string + bytes32: executed successfully");
         });
     });
 

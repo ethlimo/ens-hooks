@@ -291,13 +291,15 @@ export function parseFunctionCallValues(
         // Get parameter types from signature
         const paramTypes = parseParameterTypes(functionSignature);
         
-        // Extract the parameters string from functionCall
-        const callMatch = functionCall.match(/^\w+\(([^)]*)\)$/);
-        if (!callMatch) {
+        // Extract the parameters string from functionCall by locating outer parentheses
+        const trimmedCall = functionCall.trim();
+        const openParenIndex = trimmedCall.indexOf('(');
+        const closeParenIndex = trimmedCall.lastIndexOf(')');
+        if (openParenIndex === -1 || closeParenIndex === -1 || closeParenIndex < openParenIndex) {
             throw new Error('Invalid function call format');
         }
         
-        const paramsString = callMatch[1].trim();
+        const paramsString = trimmedCall.slice(openParenIndex + 1, closeParenIndex).trim();
         
         // Handle zero parameters
         if (paramTypes.length === 0) {

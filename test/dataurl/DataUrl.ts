@@ -36,7 +36,7 @@ describe("EIP-8121 DataResolver Integration", function () {
         // Create provider map for local network
         chainId = BigInt((await ethers.provider.getNetwork()).chainId);
         providerMap = new Map();
-        providerMap.set(chainId, ethers.provider);
+        providerMap.set(Number(chainId), ethers.provider);
     });
 
     it("should store and retrieve simple data", async function () {
@@ -197,7 +197,6 @@ describe("EIP-8121 DataResolver Integration", function () {
         const providerMap = new Map([[31337, ethers.provider]]);
         
         const result = await executeHook(decoded!, {
-            params: [node],
             providerMap,
             trustedTargets
         });
@@ -236,7 +235,6 @@ describe("EIP-8121 DataResolver Integration", function () {
         const providerMap = new Map([[31337, ethers.provider]]);
         
         const result = await executeHook(decoded!, {
-            params: [node],
             providerMap,
             trustedTargets
         });
@@ -291,7 +289,6 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         expect(decoded).to.not.be.null;
         
         const result = await executeHook(decoded!, {
-            params: [],
             providerMap
         });
         
@@ -301,39 +298,22 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         }
     });
 
-    it("should reject zero-parameter hook with nodehash provided", async function () {
-        const { executeHook } = await import("../../src/index.js");
-        
-        const testData = ethers.toUtf8Bytes("Global data");
-        // Store raw bytes
-        await zeroParameterHookTarget.setData(testData);
-        
-        const functionSignature = "getData()";
-        const functionCall = "getData()";
-        const returnType = "(bytes)";
+    it("should reject zero-parameter function with non-empty arguments", async function () {
         const target: EIP8121Target = {
             chainId: Number(chainId),
             address: await zeroParameterHookTarget.getAddress()
         };
         
-        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
-        const decoded = await decodeHook(hookData);
+        const functionSignature = "getData()";
+        const functionCall = "getData(0x1234567890123456789012345678901234567890123456789012345678901234)";
+        const returnType = "(bytes)";
         
-        expect(decoded).to.not.be.null;
-        
-        const node = namehash("test.eth");
-        const result = await executeHook(decoded!, {
-            params: [node],
-            providerMap
-        });
-        
-        expect(result._tag).to.equal("HookExecutionError");
-        if (result._tag === "HookExecutionError") {
-            expect(result.message).to.include("Parameter count mismatch");
-        }
+        await expect(
+            encodeHook(functionSignature, functionCall, returnType, target)
+        ).to.be.rejectedWith(/Function expects 0 parameters but call has parameters/);
     });
 
-    it("should reject one-parameter hook without nodehash", async function () {
+    it("should call one-parameter hook with encoded parameter", async function () {
         const { executeHook } = await import("../../src/index.js");
         
         const functionSignature = "data(bytes32)";
@@ -350,18 +330,17 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         
         expect(decoded).to.not.be.null;
         
+        // Now functionCall has the parameter encoded
+        // This will fail at execution because ZeroParameterHookTarget doesn't have data(bytes32)
         const result = await executeHook(decoded!, {
-            params: [],
             providerMap
         });
         
+        // Execution will fail because the contract doesn't have this function
         expect(result._tag).to.equal("HookExecutionError");
-        if (result._tag === "HookExecutionError") {
-            expect(result.message).to.include("Parameter count mismatch");
-        }
     });
 
-    it("should reject hook with 2 parameters", async function () {
+    it("should accept hook with 2 parameters", async function () {
         const { validateHook } = await import("../../src/index.js");
         
         const functionSignature = "getData(bytes32,bytes32)";
@@ -377,28 +356,29 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         
         expect(decoded).to.not.be.null;
         
-        // With new format, 2 bytes32 parameters are now VALID
+        // 2 parameters are valid (within the 0-2 limit)
         const validation = validateHook(decoded!);
         expect(validation.isValid).to.be.true;
     });
 
-    it("should reject hook with non-bytes32 parameter", async function () {
-        // Now validation happens during encoding
-        const functionSignature = "invalidFunc(string)";
-        const functionCall = "invalidFunc('test')";
+    it("should accept hook with string parameter", async function () {
+        // Strings are now supported!
+        
+        const functionSignature = "validFunc(string)";
+        const functionCall = "validFunc('test')";
         const returnType = "(bytes)";
         const target: EIP8121Target = {
             chainId: Number(chainId),
             address: await zeroParameterHookTarget.getAddress()
         };
         
-        // Should throw during encoding due to unsupported parameter type
-        try {
-            await encodeHook(functionSignature, functionCall, returnType, target);
-            expect.fail("Should have thrown on unsupported parameter type");
-        } catch (error: any) {
-            expect(error.message).to.include("Unsupported parameter type: string");
-        }
+        // Should succeed during encoding - strings are now supported
+        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
+        const decoded = await decodeHook(hookData);
+        
+        expect(decoded).to.not.be.null;
+        const validation = validateHook(decoded!);
+        expect(validation.isValid).to.be.true;
     });
 
     it("should handle empty global data", async function () {
@@ -422,7 +402,6 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         expect(decoded).to.not.be.null;
         
         const result = await executeHook(decoded!, {
-            params: [],
             providerMap
         });
         

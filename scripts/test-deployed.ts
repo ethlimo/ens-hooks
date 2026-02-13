@@ -46,10 +46,10 @@ async function main() {
     
     const providerMap: ProviderMap = new Map([[chainId, hreEthers.provider]]);
     
-    // Test ENS names with hooks
+    // Test ENS names with hooks (subdomains)
     const testNames = [
-        "singleparam-weaken-home-truth-plan-9.eth",
-        "multiparam-weaken-home-truth-plan-9.eth"
+        "zeroparam.multiparam-weaken-home-truth-plan-9.eth",
+        "singleparam.multiparam-weaken-home-truth-plan-9.eth"
     ];
     
     let passed = 0;
@@ -91,25 +91,8 @@ async function main() {
             }
             console.log("  Validation: OK");
             
-            // Determine params from function signature
-            const paramMatch = decoded.functionSignature.match(/\(([^)]*)\)/);
-            const paramTypes = paramMatch && paramMatch[1] ? paramMatch[1].split(",").filter(Boolean) : [];
-            
-            // Execute hook based on parameter count
-            let result;
-            if (paramTypes.length === 0) {
-                result = await executeHook(decoded, { params: [], providerMap });
-            } else if (paramTypes.length === 1) {
-                result = await executeHook(decoded, { 
-                    params: [namehash(ensName)], 
-                    providerMap 
-                });
-            } else {
-                result = await executeHook(decoded, { 
-                    params: [namehash(ensName), "0x0000000000000000000000000000000000000000000000000000000000000000"], 
-                    providerMap 
-                });
-            }
+            // Execute hook - parameters come from functionCall
+            const result = await executeHook(decoded, { providerMap });
             
             if (result._tag === "HookExecutionResult") {
                 console.log("  Execution: OK");

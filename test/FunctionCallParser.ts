@@ -28,7 +28,9 @@ describe("FunctionCall Parser Tests", function() {
         chainId = Number(network.chainId);
         providerMap = new Map([[chainId, ethers.provider]]);
         
-        console.log(`Test contract deployed at: ${contractAddress}`);
+        if (process.env.FUNCTION_CALL_PARSER_TEST_DEBUG === "true") {
+            console.log(`Test contract deployed at: ${contractAddress}`);
+        }
     });
 
     describe("String Parameter Tests", function() {

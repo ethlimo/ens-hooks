@@ -230,21 +230,8 @@ async function main() {
             const validation = validateHook(decoded);
             if (!validation.isValid) throw new Error(`Validation failed: ${validation.error}`);
             
-            // Execute hook based on param count
-            let result;
-            if (testCase.params.length === 0) {
-                result = await executeHook(decoded, { providerMap, params: [] });
-            } else if (testCase.params.length === 1) {
-                result = await executeHook(decoded, { 
-                    params: [String(testCase.params[0])], 
-                    providerMap 
-                });
-            } else {
-                result = await executeHook(decoded, { 
-                    params: [String(testCase.params[0]), String(testCase.params[1])], 
-                    providerMap 
-                });
-            }
+            // Execute hook - parameters come from functionCall
+            const result = await executeHook(decoded, { providerMap });
             
             if (result._tag !== "HookExecutionResult") {
                 throw new Error(`Execution failed: ${result.message}`);

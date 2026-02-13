@@ -91,25 +91,8 @@ async function main() {
             }
             console.log("  Validation: OK");
             
-            // Determine params from function signature
-            const paramMatch = decoded.functionSignature.match(/\(([^)]*)\)/);
-            const paramTypes = paramMatch && paramMatch[1] ? paramMatch[1].split(",").filter(Boolean) : [];
-            
-            // Execute hook based on parameter count
-            let result;
-            if (paramTypes.length === 0) {
-                result = await executeHook(decoded, { params: [], providerMap });
-            } else if (paramTypes.length === 1) {
-                result = await executeHook(decoded, { 
-                    params: [namehash(ensName)], 
-                    providerMap 
-                });
-            } else {
-                result = await executeHook(decoded, { 
-                    params: [namehash(ensName), "0x0000000000000000000000000000000000000000000000000000000000000000"], 
-                    providerMap 
-                });
-            }
+            // Execute hook - parameters come from functionCall
+            const result = await executeHook(decoded, { providerMap });
             
             if (result._tag === "HookExecutionResult") {
                 console.log("  Execution: OK");

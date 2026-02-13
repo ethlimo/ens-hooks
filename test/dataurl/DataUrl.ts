@@ -298,35 +298,19 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         }
     });
 
-    it("should execute zero-parameter hook successfully", async function () {
-        const { executeHook } = await import("../../src/index.js");
-        
-        const testData = ethers.toUtf8Bytes("Global data");
-        // Store raw bytes
-        await zeroParameterHookTarget.setData(testData);
-        
-        const functionSignature = "getData()";
-        const functionCall = "getData()";
-        const returnType = "(bytes)";
+    it("should reject zero-parameter function with non-empty arguments", async function () {
         const target: EIP8121Target = {
             chainId: Number(chainId),
             address: await zeroParameterHookTarget.getAddress()
         };
         
-        const hookData = await encodeHook(functionSignature, functionCall, returnType, target);
-        const decoded = await decodeHook(hookData);
+        const functionSignature = "getData()";
+        const functionCall = "getData(0x1234567890123456789012345678901234567890123456789012345678901234)";
+        const returnType = "(bytes)";
         
-        expect(decoded).to.not.be.null;
-        
-        const result = await executeHook(decoded!, {
-            providerMap
-        });
-        
-        // Should succeed - zero parameters from functionCall
-        expect(result._tag).to.equal("HookExecutionResult");
-        if (result._tag === "HookExecutionResult") {
-            expect(ethers.hexlify(result.data)).to.equal(ethers.hexlify(testData));
-        }
+        await expect(
+            encodeHook(functionSignature, functionCall, returnType, target)
+        ).to.be.rejectedWith(/Function expects 0 parameters but call has parameters/);
     });
 
     it("should call one-parameter hook with encoded parameter", async function () {

@@ -315,6 +315,20 @@ describe("FunctionCall Parser Tests", function() {
             expect(result._tag).to.equal("HookExecutionResult");
         });
 
+        it("should handle uppercase hex prefix (0X) uint256", async function() {
+            const hookData = await encodeHook(
+                "getHexUint(uint256)",
+                "getHexUint(0X1234ABCD)",
+                "(bytes)",
+                { chainId, address: contractAddress }
+            );
+            
+            const decoded = await decodeHook(hookData);
+            const result = await executeHook(decoded!, { providerMap });
+            
+            expect(result._tag).to.equal("HookExecutionResult");
+        });
+
         it("should handle zero uint256", async function() {
             const hookData = await encodeHook(
                 "getUint256Zero(uint256)",

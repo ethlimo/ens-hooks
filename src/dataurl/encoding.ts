@@ -392,9 +392,9 @@ export function parseFunctionCallValues(
                     }
                 } else if (paramType.startsWith('uint') || paramType.startsWith('int')) {
                     // Parse as hex or decimal number
-                    if (valueStr.startsWith('0x')) {
-                        // Hex number
-                        if (!/^0x[0-9a-fA-F]+$/.test(valueStr)) {
+                    if (valueStr.startsWith('0x') || valueStr.startsWith('0X')) {
+                        // Hex number (normalize to lowercase for validation)
+                        if (!/^0[xX][0-9a-fA-F]+$/.test(valueStr)) {
                             throw new Error(`Parameter ${paramIndex + 1} (type ${paramType}): invalid hex number format`);
                         }
                     } else {

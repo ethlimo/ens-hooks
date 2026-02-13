@@ -9,7 +9,7 @@ import {
 } from "./encoding.js";
 import { TrustedTargets, verifyTrustedTarget } from "./trust.js";
 
-export type ProviderMap = Map<number | bigint, Provider>;
+export type ProviderMap = Map<number, Provider>;
 
 export interface HookExecutionResult {
     _tag: "HookExecutionResult";

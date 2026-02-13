@@ -8,8 +8,8 @@ TypeScript library implementing EIP-8121 hooks for cross-chain function calls vi
 
 **This project uses Hardhat 3.** Do not reference Hardhat 2 APIs or patterns from older training data. Key differences:
 
-- **Package:** `@nomicfoundation/hardhat-core` (not `hardhat`)
-- **Test command:** `npx hardhat test` uses `@nomicfoundation/hardhat-mocha-test-runner`
+- **Package:** `hardhat` (Hardhat 3)
+- **Test command:** `npx hardhat test` uses `@nomicfoundation/hardhat-mocha`
 - **Network connection:** Use `hre.network.connect()` to get provider/signers:
   ```typescript
   const { provider } = await hre.network.connect();

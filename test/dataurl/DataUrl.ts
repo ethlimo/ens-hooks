@@ -379,7 +379,6 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
 
     it("should accept hook with string parameter", async function () {
         // Strings are now supported!
-        const { executeHook } = await import("../../src/index.js");
         
         const functionSignature = "validFunc(string)";
         const functionCall = "validFunc('test')";

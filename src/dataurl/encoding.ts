@@ -198,10 +198,22 @@ function validateIntegerRange(value: string, paramType: string, paramIndex: numb
     const bitsStr = paramType.replace(/^u?int/, '');
     const bits = bitsStr ? parseInt(bitsStr, 10) : 256;
     
+    // Reject excessively long numeric strings before BigInt parsing to prevent DoS
+    // Max for uint256: 78 decimal digits or 64 hex digits (+ 2 for '0x')
+    // Max for int256: 78 digits + 1 for sign = 79 decimal, or 64 hex + 2 = 66 with '0x'
+    const isHex = value.startsWith('0x') || value.startsWith('0X');
+    const maxLength = isHex ? 66 : 79; // Max length including prefix/sign
+    
+    if (value.length > maxLength) {
+        throw new Error(detailedErrors
+            ? `Parameter ${paramIndex + 1} (type ${paramType}): numeric string too long (max ${maxLength} characters)`
+            : 'Failed to parse function call parameters');
+    }
+    
     // Parse value as BigInt (handles both decimal and hex)
     let numValue: bigint;
     try {
-        if (value.startsWith('0x') || value.startsWith('0X')) {
+        if (isHex) {
             numValue = BigInt(value);
         } else {
             numValue = BigInt(value);

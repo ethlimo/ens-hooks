@@ -552,6 +552,62 @@ describe("FunctionCall Parser Tests", function() {
         });
     });
 
+    describe("DoS Protection Tests", function() {
+        it("should reject excessively long decimal integer string", async function() {
+            // Create a string with 80 digits (exceeds max of 79)
+            const tooLongDecimal = "1".repeat(80);
+            await expect(
+                encodeHook(
+                    "getUint256(uint256)",
+                    `getUint256(${tooLongDecimal})`,
+                    "(bytes)",
+                    { chainId, address: contractAddress }
+                )
+            ).to.be.rejectedWith(/numeric string too long/);
+        });
+
+        it("should reject excessively long hex integer string", async function() {
+            // Create a hex string with 67 chars (exceeds max of 66 including 0x)
+            const tooLongHex = "0x" + "f".repeat(65);
+            await expect(
+                encodeHook(
+                    "getUint256(uint256)",
+                    `getUint256(${tooLongHex})`,
+                    "(bytes)",
+                    { chainId, address: contractAddress }
+                )
+            ).to.be.rejectedWith(/numeric string too long/);
+        });
+
+        it("should accept max length decimal integer string (79 chars)", async function() {
+            // 79 chars is the max (78 digits + potential sign)
+            const maxLengthDecimal = "1".repeat(79);
+            // This will fail range validation but should pass length check
+            await expect(
+                encodeHook(
+                    "getUint256(uint256)",
+                    `getUint256(${maxLengthDecimal})`,
+                    "(bytes)",
+                    { chainId, address: contractAddress }
+                )
+            ).to.be.rejectedWith(/out of range/); // Fails range, not length
+        });
+
+        it("should accept max length hex integer string (66 chars)", async function() {
+            // 66 chars is the max (0x + 64 hex digits)
+            // Use 0x0 followed by 63 f's to stay within uint256 range
+            const maxLengthHex = "0x0" + "f".repeat(63);
+            const hookData = await encodeHook(
+                "getUint256(uint256)",
+                `getUint256(${maxLengthHex})`,
+                "(bytes)",
+                { chainId, address: contractAddress }
+            );
+            
+            expect(hookData).to.be.a("string");
+        });
+    });
+
     describe("BytesN Parameter Tests", function() {
         it("should handle bytes32", async function() {
             const hash = "0x1234567890123456789012345678901234567890123456789012345678901234";

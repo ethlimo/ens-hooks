@@ -7,7 +7,7 @@ import {
     computeSelector,
     extractFunctionName,
     parseParameterTypes,
-    isAllowedParameterType,
+    isFixedSizePrimitive,
     validateFunctionCallMatchesSignature,
     encodeERC7930Target,
     decodeERC7930Target,
@@ -128,31 +128,31 @@ describe("EIP-8121 Hook Encoding", function () {
     });
 
     describe("Parameter Type Validation", function () {
-        it("should accept allowed parameter types", function () {
+        it("should accept fixed-size primitives", function () {
             const validTypes = [
                 "bool",
                 "address",
-                "string",  // Now supported!
                 "uint8", "uint16", "uint32", "uint64", "uint128", "uint256",
                 "int8", "int16", "int32", "int64", "int128", "int256",
                 "bytes1", "bytes2", "bytes4", "bytes8", "bytes16", "bytes32"
             ];
             
             for (const type of validTypes) {
-                expect(isAllowedParameterType(type), `${type} should be valid`).to.be.true;
+                expect(isFixedSizePrimitive(type), `${type} should be valid`).to.be.true;
             }
         });
 
         it("should reject dynamic types", function () {
             const invalidTypes = [
-                "bytes",  // Dynamic bytes not supported
+                "string",
+                "bytes",
                 "uint256[]",
                 "address[]",
                 "(uint256,string)"
             ];
             
             for (const type of invalidTypes) {
-                expect(isAllowedParameterType(type), `${type} should be invalid`).to.be.false;
+                expect(isFixedSizePrimitive(type), `${type} should be invalid`).to.be.false;
             }
         });
 
@@ -180,8 +180,7 @@ describe("EIP-8121 Hook Encoding", function () {
         });
 
         it("should throw on unsupported parameter type", function () {
-            // Dynamic bytes is not supported (but string is now!)
-            const sig = "getData(bytes)";
+            const sig = "getData(string)";
             expect(() => parseParameterTypes(sig)).to.throw("Unsupported parameter type");
         });
     });

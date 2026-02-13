@@ -18,6 +18,7 @@ import {
     tryDecodeDataUri,
     type EIP8121Target
 } from "../../src/dataurl/encoding.js";
+import { detectAndDecodeHook } from "../../src/dataurl/index.js";
 import { HOOK_SELECTOR } from "../../src/dataurl/constants.js";
 
 describe("EIP-8121 Hook Encoding", function () {
@@ -371,6 +372,41 @@ describe("EIP-8121 Hook Encoding", function () {
         it("should not detect non-hook data", function () {
             expect(isEIP8121Hook("0x1234567890")).to.be.false;
             expect(isEIP8121Hook("0x")).to.be.false;
+        });
+
+        it("should detect EIP-8121 hook with PROTOCODE_ETH_CALLDATA prefix", async function () {
+            const functionSignature = "data(bytes32)";
+            const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
+            const returnType = "(bytes)";
+            const target: EIP8121Target = {
+                chainId: 1,
+                address: "0x1234567890123456789012345678901234567890"
+            };
+            
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
+            const contenthash = encodeEIP8121HookForContenthash(encoded);
+            
+            expect(isEIP8121Hook(contenthash)).to.be.true;
+        });
+
+        it("should decode hook with PROTOCODE_ETH_CALLDATA prefix via detectAndDecodeHook", async function () {
+            const functionSignature = "data(bytes32)";
+            const functionCall = "data(0x1234567890123456789012345678901234567890123456789012345678901234)";
+            const returnType = "(bytes)";
+            const target: EIP8121Target = {
+                chainId: 1,
+                address: "0x1234567890123456789012345678901234567890"
+            };
+            
+            const encoded = await encodeHook(functionSignature, functionCall, returnType, target);
+            const contenthash = encodeEIP8121HookForContenthash(encoded);
+            
+            const decoded = await detectAndDecodeHook(contenthash);
+            expect(decoded).to.not.be.null;
+            expect(decoded!.functionSignature).to.equal(functionSignature);
+            expect(decoded!.functionCall).to.equal(functionCall);
+            expect(decoded!.returnType).to.equal(returnType);
+            expect(decoded!.target).to.deep.equal(target);
         });
     });
 

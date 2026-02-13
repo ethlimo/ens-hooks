@@ -4,6 +4,7 @@ import {
     executeHook,
     validateHook,
     tryDecodeEIP8121HookFromContenthash,
+    tryDecodeDataUri,
     type ProviderMap 
 } from "../src/index.js";
 import { ethers, namehash } from "ethers";
@@ -46,10 +47,11 @@ async function main() {
     
     const providerMap: ProviderMap = new Map([[chainId, hreEthers.provider]]);
     
-    // Test ENS names with hooks (subdomains)
+    // Test ENS names with hooks (subdomains) and URI redirects
     const testNames = [
         "zeroparam.multiparam-weaken-home-truth-plan-9.eth",
-        "singleparam.multiparam-weaken-home-truth-plan-9.eth"
+        "singleparam.multiparam-weaken-home-truth-plan-9.eth",
+        "redirect-0x55559E7da7AeC04B3156e16a60Cf57A348843dFB.eth"
     ];
     
     let passed = 0;
@@ -67,10 +69,19 @@ async function main() {
             }
             console.log("  Contenthash:", contenthash.slice(0, 40) + "...");
             
+            // Try to decode as URI redirect first
+            const uri = tryDecodeDataUri(contenthash);
+            if (uri) {
+                console.log("  Detected URI redirect");
+                console.log("  Redirect URL:", uri);
+                passed++;
+                continue;
+            }
+
             // Try to decode as EIP-8121 hook
             const hookData = tryDecodeEIP8121HookFromContenthash(contenthash);
             if (!hookData) {
-                console.log("  Not an EIP-8121 hook");
+                console.log("  Not an EIP-8121 hook or URI");
                 continue;
             }
             console.log("  Detected EIP-8121 hook");

@@ -306,6 +306,10 @@ export function parseFunctionCallValues(
         if (openParenIndex === -1 || closeParenIndex === -1 || closeParenIndex < openParenIndex) {
             throw new Error('Invalid function call format');
         }
+        // Ensure there is no trailing non-parenthesis content after the closing ')'
+        if (closeParenIndex !== trimmedCall.length - 1) {
+            throw new Error('Invalid function call format');
+        }
         
         const paramsString = trimmedCall.slice(openParenIndex + 1, closeParenIndex).trim();
         

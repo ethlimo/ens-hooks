@@ -4,7 +4,10 @@ on:
   pull_request:
     paths-ignore:
       - '*.md'
-      - '.github/actions/**'
+      - '.github/actions/publish/**'
+      - '.github/actions/sbom/**'
+      - '.github/workflows/pr_conventional_commits.yml'
+      - '.github/workflows/release.yml'
       - '.gitignore'
       - 'CODEOWNERS'
       - 'LICENSE'

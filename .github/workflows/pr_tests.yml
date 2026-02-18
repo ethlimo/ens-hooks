@@ -14,6 +14,9 @@ on:
     branches-ignore:
       - 'release-please--*'
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     if: github.repository == 'ethlimo/ens-hooks'

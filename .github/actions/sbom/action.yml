@@ -1,0 +1,12 @@
+name: Build SBOM
+description: Generate SPDX SBOM
+runs:
+  using: composite
+  steps:
+    # anchore/sbom-action@v0.20.5
+    - uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c
+      id: generate-spdx-sbom
+      with:
+        path: "."
+        format: spdx-json
+        output-file: sbom.spdx.json

@@ -1,0 +1,9 @@
+ignore:
+  - vulnerability: GHSA-22r3-9w55-cj54
+    fix-state: not-fixed
+  - vulnerability: GHSA-58x9-4xmp-8mg5
+    fix-state: not-fixed
+  - package:
+      type: go-module
+  - package:
+      type: rust-crate

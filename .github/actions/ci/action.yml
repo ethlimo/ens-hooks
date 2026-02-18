@@ -1,0 +1,17 @@
+name: Install Dependencies
+description: Install project dependencies
+runs:
+  using: composite
+  steps:
+    - name: Setup safe-chain
+      id: setup-safe-chain
+      run: |
+        npm i -g @aikidosec/safe-chain
+        safe-chain setup-ci
+      shell: bash
+    - run: npm ci
+      name: Install Dependencies
+      id: install-dependencies
+      shell: bash
+      env:
+        SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS: 48

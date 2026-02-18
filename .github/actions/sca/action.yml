@@ -1,0 +1,12 @@
+name: Software Composition Analysis (SCA) Scan
+description: Run SCA scan using Grype
+runs:
+  using: composite
+  steps:
+    # anchore/scan-action@v6.5.1
+    - uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e
+      with:
+        path: "."
+        fail-build: true
+        severity-cutoff: high
+        output-format: "table"

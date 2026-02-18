@@ -1,0 +1,74 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - '.github/actions/**'
+      - '.gitignore'
+      - 'CODEOWNERS'
+      - 'LICENSE'
+      - 'release-please-config.json'
+      - '.release-please-manifest.json'
+      - './husky/**'
+    branches-ignore:
+      - 'release-please--*'
+
+jobs:
+  tests:
+    if: github.repository == 'ethlimo/ens-hooks'
+    name: Test Suite
+    environment: Development
+    runs-on: ubuntu-latest
+    steps:
+
+        # step-security/harden-runner@v2.13.2
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            registry.npmjs.org:443
+            eth-mainnet.g.alchemy.com:443
+            binaries.soliditylang.org:443
+            malware-list.aikido.dev:443
+            grype.anchore.io:443
+            get.anchore.io:443
+            raw.githubusercontent.com:443
+            release-assets.githubusercontent.com:443 
+                       
+      - name: Checkout the repo
+        # actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+
+      - name: Dependency Scan (Grype)
+        id: grype-scan
+        uses: ./.github/actions/sca
+
+      - name: Set up Node.js environment
+        uses: ./.github/actions/nodejs_setup
+        id: setup-node
+
+      - name: Install dependencies
+        id: install-dependencies
+        uses: ./.github/actions/ci    
+
+      - name: Validate PR commits
+        run: |
+          npx commitlint \
+          --from ${{ github.event.pull_request.base.sha }} \
+          --to ${{ github.event.pull_request.head.sha }}
+
+      - name: Run tests
+        run: npm test
+        env:
+          NODE_OPTIONS: --no-experimental-strip-types
+          ETH_RPC_URL: ${{ secrets.ETH_RPC_URL }}
+
+      - name: Test package publishing
+        run: |
+          npm publish \
+          --dry-run
+

@@ -1,7 +1,7 @@
 {
   "name": "@ethlimo/ens-hooks",
   "version": "0.1.9",
-  "description": "TypeScript library for encoding, decoding, and executing EIP-8121 hooks with ERC-7930 interoperable addresses",
+  "description": "TypeScript library for encoding, decoding, and executing EIP-8121 hooks with ERC-7930 interoperable addresses.",
   "repository": {
     "type": "git",
     "url": "https://github.com/ethlimo/ens-hooks.git"

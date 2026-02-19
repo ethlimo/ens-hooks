@@ -34,8 +34,7 @@ jobs:
             registry.npmjs.org:443
             rekor.sigstore.dev:443
             release-assets.githubusercontent.com:443
-            uploads.github.com:443
-            binaries.soliditylang.org:443
+            uploads.github.com:443   
                    
       - name: Checkout the repo
         # actions/checkout@v5

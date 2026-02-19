@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.12](https://github.com/ethlimo/ens-hooks/compare/v0.1.11...v0.1.12) (2026-02-19)
+
+
+### Bug Fixes
+
+* add build to the publish script ([#10](https://github.com/ethlimo/ens-hooks/issues/10)) ([6d700b1](https://github.com/ethlimo/ens-hooks/commit/6d700b14214ef1dfea65f1797d53fe736188c8f4))
+
 ## [0.1.11](https://github.com/ethlimo/ens-hooks/compare/v0.1.10...v0.1.11) (2026-02-19)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.13](https://github.com/ethlimo/ens-hooks/compare/v0.1.12...v0.1.13) (2026-02-19)
+
+
+### Bug Fixes
+
+* **harden-runner:** add binaries.solidityland.org to allowed endpoints ([#12](https://github.com/ethlimo/ens-hooks/issues/12)) ([5a34c38](https://github.com/ethlimo/ens-hooks/commit/5a34c38832d5ccbb96d4ad31997fa1d39de90ef7))
+
 ## [0.1.12](https://github.com/ethlimo/ens-hooks/compare/v0.1.11...v0.1.12) (2026-02-19)
 
 

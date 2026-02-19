@@ -3,6 +3,8 @@ ignore:
     fix-state: not-fixed
   - vulnerability: GHSA-58x9-4xmp-8mg5
     fix-state: not-fixed
+  - vulnerability: GHSA-3ppc-4f35-3m26
+    fix-state: not-fixed
   - package:
       type: go-module
   - package:

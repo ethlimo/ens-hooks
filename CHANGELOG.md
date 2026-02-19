@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/ethlimo/ens-hooks/compare/v0.1.10...v0.1.11) (2026-02-19)
+
+
+### Bug Fixes
+
+* prepublish and export map ([#8](https://github.com/ethlimo/ens-hooks/issues/8)) ([cbec37a](https://github.com/ethlimo/ens-hooks/commit/cbec37a0dbab63e6c139054046aa01e0bb9e736b))
+
 ## [0.1.10](https://github.com/ethlimo/ens-hooks/compare/v0.1.9...v0.1.10) (2026-02-18)
 
 

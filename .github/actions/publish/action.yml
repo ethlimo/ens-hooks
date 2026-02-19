@@ -17,6 +17,8 @@ runs:
             echo "${registry_path}:_authToken=${{ inputs.node-auth-token }}" >> ~/.npmrc
         fi
 
+        npm run build
+
         npm publish \
         --provenance \
         --access=public \

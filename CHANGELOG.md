@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/ethlimo/ens-hooks/compare/v0.1.13...v0.1.14) (2026-02-19)
+
+
+### Dependencies
+
+* ignore GHSA-3ppc-4f35-3m26 vulnerability for transitive hardhat typechain dep ([#14](https://github.com/ethlimo/ens-hooks/issues/14)) ([d0b0ab5](https://github.com/ethlimo/ens-hooks/commit/d0b0ab586f5abb831977c145f9966b28be5d21df))
+
 ## [0.1.13](https://github.com/ethlimo/ens-hooks/compare/v0.1.12...v0.1.13) (2026-02-19)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.15](https://github.com/ethlimo/ens-hooks/compare/v0.1.14...v0.1.15) (2026-02-19)
+
+
+### Dependencies
+
+* fix .grype.yaml entry ([#16](https://github.com/ethlimo/ens-hooks/issues/16)) ([fb5bd62](https://github.com/ethlimo/ens-hooks/commit/fb5bd62b9e27707990e2bb8441a4dc9b746a4e7c))
+
 ## [0.1.14](https://github.com/ethlimo/ens-hooks/compare/v0.1.13...v0.1.14) (2026-02-19)
 
 

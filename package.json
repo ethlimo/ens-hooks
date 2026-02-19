@@ -24,7 +24,6 @@
   "scripts": {
     "prepare": "husky",
     "build": "npx hardhat compile && npx tsc",
-    "prepublishOnly": "npm run build",
     "clean": "rm -rf cache/ edr-fork-cache/ ignition/deployments/chain-1 artifacts/ dist",
     "test": "npx hardhat test",
     "node": "npx hardhat node --network hardhat",

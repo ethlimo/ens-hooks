@@ -30,7 +30,12 @@
     "deploy-localnode": "npx hardhat run scripts/deploy-localnode.ts --network localhost",
     "test-localnode": "npx hardhat run scripts/test-localnode.ts --network hardhat",
     "deploy-testnet": "npx hardhat run scripts/deploy-testnet.ts --network sepolia",
-    "test-deployed": "npx hardhat run scripts/test-deployed.ts --network sepolia"
+    "test-deployed": "npx hardhat run scripts/test-deployed.ts --network sepolia",
+    "encode-artifact": "tsx scripts/encode-artifact.ts",
+    "encode-hook": "tsx scripts/encode-hook.ts",
+    "encode-contenthash": "tsx scripts/encode-contenthash.ts",
+    "encode-full": "tsx scripts/full-encode.ts",
+    "decode-contenthash": "tsx scripts/decode-contenthash.ts"
   },
   "author": "eth.limo team",
   "license": "MIT",
@@ -52,7 +57,8 @@
     "hardhat": "^3.0.4",
     "html-minifier-terser": "^7.2.0",
     "husky": "9.1.7",
-    "mocha": "11.0.0"
+    "mocha": "11.0.0",
+    "tsx": "^4.21.0"
   },
   "dependencies": {
     "@ensdomains/ens-contracts": "^1.6.0",

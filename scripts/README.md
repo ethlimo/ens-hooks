@@ -38,3 +38,16 @@ npm run test-deployed
 - **DataResolver**: Single-parameter `data(bytes32)`
 - **ZeroParameterHookTarget**: Zero-parameter `getData()`
 - **AllParameterPermutationsHookTarget**: All 0-2 param permutations (local testing only)
+
+## Encoding Helpers
+
+These scripts support full artifact -> hook -> contenthash encoding (artifact encoding is base64-only):
+
+They are pure encoding utilities and do not use Hardhat runtime features or broadcast transactions.
+The `dataUrl` output is UTF-8 bytes hex (`0x...`) suitable for bytes inputs.
+
+- `npm run encode-artifact -- --file docs/example.html`
+- `npm run encode-hook -- --chain-id 11155111 --target 0x... --function-signature 'data(bytes32)' --function-call 'data(0x...)'`
+- `npm run encode-contenthash -- --hook-data 0x...`
+- `npm run encode-full -- --file docs/example.html --node example.eth --chain-id 11155111 --target 0x...`
+- `npm run decode-contenthash -- --contenthash 0x...`

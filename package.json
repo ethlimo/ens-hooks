@@ -30,7 +30,12 @@
     "deploy-localnode": "npx hardhat run scripts/deploy-localnode.ts --network localhost",
     "test-localnode": "npx hardhat run scripts/test-localnode.ts --network hardhat",
     "deploy-testnet": "npx hardhat run scripts/deploy-testnet.ts --network sepolia",
-    "test-deployed": "npx hardhat run scripts/test-deployed.ts --network sepolia"
+    "test-deployed": "npx hardhat run scripts/test-deployed.ts --network sepolia",
+    "encode-artifact": "tsx scripts/encode-artifact.ts",
+    "encode-hook": "tsx scripts/encode-hook.ts",
+    "encode-contenthash": "tsx scripts/encode-contenthash.ts",
+    "encode-full": "tsx scripts/full-encode.ts",
+    "decode-contenthash": "tsx scripts/decode-contenthash.ts"
   },
   "author": "eth.limo team",
   "license": "MIT",
@@ -40,30 +45,35 @@
     "@nomicfoundation/hardhat-errors": "^3.0.0",
     "@nomicfoundation/hardhat-ethers": "^4.0.0",
     "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0",
-    "@nomicfoundation/hardhat-ignition": "^3.0.0",
+    "@nomicfoundation/hardhat-ignition": "3.1.7",
     "@nomicfoundation/hardhat-keystore": "^3.0.0",
     "@nomicfoundation/hardhat-mocha": "3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
     "@nomicfoundation/hardhat-node-test-runner": "^3.0.0",
     "@nomicfoundation/hardhat-typechain": "^3.0.0",
-    "@nomicfoundation/ignition-core": "^3.0.0",
+    "@nomicfoundation/ignition-core": "3.1.7",
     "@types/html-minifier-terser": "^7.0.2",
-    "@types/mocha": "^10.0.0",
-    "hardhat": "^3.0.4",
+    "@types/mocha": "10.0.10",
+    "hardhat": "^3.9.0",
     "html-minifier-terser": "^7.2.0",
     "husky": "9.1.7",
-    "mocha": "11.0.0"
+    "mocha": "11.0.0",
+    "tsx": "^4.21.0"
   },
   "dependencies": {
     "@ensdomains/ens-contracts": "^1.6.0",
-    "@nomicfoundation/hardhat-ignition-ethers": "^3.0.0",
-    "@wonderland/interop-addresses": "0.2.0",
+    "@nomicfoundation/hardhat-ignition-ethers": "3.1.6",
+    "@wonderland/interop-addresses": "0.8.1",
     "ethers": "^6.13.5"
   },
   "overrides": {
     "@ensdomains/buffer": "0.1.3",
     "@openzeppelin/contracts": "4.9.6",
-    "axios": ">=1.13.5 || <1.4.0"
+    "axios": ">=1.13.5 || <1.4.0",
+    "serialize-javascript": ">7.0.4",
+    "lodash-es": ">4.17.23",
+    "@actions/http-client": ">3.0.1",
+    "ws": "8.21.0"
   },
   "exports": {
     ".": {

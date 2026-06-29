@@ -1,6 +1,6 @@
 import { BytesLike, ethers, getBytes, toUtf8Bytes, toUtf8String } from "ethers";
 import { HookAbi, PROTOCODE_ETH_CALLDATA, PROTOCODE_CONTENTHASH_URI, HOOK_SELECTOR } from "./constants.js";
-import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-addresses";
+import { getAddress, getChainId, encodeAddress} from "@wonderland/interop-addresses";
 
 export const HookInterface = new ethers.Interface(HookAbi);
 
@@ -74,24 +74,28 @@ export interface DecodedEIP8121Hook {
 }
 
 export async function encodeERC7930Target(chainId: number, address: string): Promise<string> {
-    const binaryAddress = await buildFromPayload({
+    const binaryAddress = encodeAddress({
         version: 1,
         chainType: "eip155",
         chainReference: chainId.toString(),
         address: address,
+    }, {
+        format: "hex",
     });
+
     return binaryAddress;
 }
 
 export async function decodeERC7930Target(target: string): Promise<EIP8121Target | null> {
     try {
-        const chainId = await getChainId(target);
-        const address = await getAddress(target);
-        
-        if (typeof chainId !== 'number') {
+        const rawChainId = await getChainId(target);
+        const chainId = typeof rawChainId === 'number' ? rawChainId : Number(rawChainId);
+        if (!Number.isInteger(chainId)) {
             return null;
         }
-        
+
+        const address = await getAddress(target);
+
         return { chainId, address };
     } catch {
         return null;

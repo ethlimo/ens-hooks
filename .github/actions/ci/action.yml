@@ -3,6 +3,11 @@ description: Install project dependencies
 runs:
   using: composite
   steps:
+    - name: Pin to npm v10
+      id: setup-npm-10
+      run: |
+        npm install -g npm@10
+      shell: bash
     - name: Setup safe-chain
       id: setup-safe-chain
       run: |

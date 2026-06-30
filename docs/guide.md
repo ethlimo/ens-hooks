@@ -12,11 +12,9 @@ The full flow is:
 
 On-chain storage is expensive. Keep artifacts small (about 5KB or less is a practical target).
 
-**Note:** This guide is only valid for ENS v1. ENS v2 changes the semantics of raw contract writes and it is necessary to manually encode contenthashes to follow this guide.
-
 ## Prerequisites
 
-A working installation of [dweb-proxy-api](https://github.com/ethlimo/dweb-proxy-api) is required to follow this guide. Set up the [local gateway](https://github.com/ethlimo/dweb-proxy-api/tree/main/local_gateway) beginning with Ethereum Mainnet as the RPC according to the directions. Verify that `vitalik.eth.localhost` resolves and serves content. Then bring your setup down with `docker compose down`/`podman-compose down` and set the `ETH_RPC_ENDPOINT` environment variable to your Sepolia testnet RPC endpoint (e.g. Infura), and set `ETH_CHAIN_ID=11155111` and `DATAURL_ENDPOINT="http://dweb-proxy-api:12500"`. Once you restart dweb-proxy-api, you will be able to visit the test content at `https://singleparam.multiparam-weaken-home-truth-plan-9.eth.localhost/`.
+A working installation of [dweb-proxy-api](https://github.com/ethlimo/dweb-proxy-api) is required to follow this guide. Set up the [local gateway](https://github.com/ethlimo/dweb-proxy-api/tree/main/local_gateway) beginning with Ethereum Mainnet as the RPC according to the directions. Verify that `vitalik.eth.localhost` resolves and serves content. Then bring your setup down with `docker compose down`/`podman-compose down` and set the `ETH_RPC_ENDPOINT` environment variable to your Sepolia testnet RPC endpoint (e.g. Infura), and set `ETH_CHAIN_ID=11155111` and `DATAURL_ENDPOINT="http://dweb-proxy-api:12500"`. Once you restart dweb-proxy-api, you will be able to visit the test content at `https://example-dataurl-123456789.eth.localhost/`.
 
 ## Required Inputs
 
@@ -55,7 +53,11 @@ This prints JSON containing:
 - `hookData`
 - `contenthash`
 
-Then search your contract address on Etherscan (ensure you run npx hardhat verify 0xYourDataResolverAddress) and select the contract tab. Connect your wallet and under `Write Contract` run the setData function with the parameters node from the "node" output and value from the "dataUrl" output. Finally, find the Sepolia public resolver address at the [deployments page](https://docs.ens.domains/learn/deployments/), search it in Etherscan, and prepare a `Write Contract` transaction for the function `setContenthash` where the value of node is the same as before, and the value of hash is the "contenthash" return value.
+After creating your ENSv2 name, you can look up its resolver address on the [ENS Explorer](explorer.ens.dev). You will need some way of calling `setContenthash(node, contenthash)` to proceed, where node and contenthash are the outputs of encode-full. This repository includes a Hardhat task `set-contenthash` that can be used for that by setting up your Sepolia private key and RPC in the Hardhat keystore, see [the scripts README](../scripts/README.md).
+
+After setting the contenthash, you will need to call setData(node, dataUrl) on your DataResolver contract to actually store the data on chain, where node and dataUrl are the outputs of encode-full.
+
+Setting the contenthash tells compatible clients to retrieve the data by calling DataResolver.data(node). The choice of which function to call on what contract is arbitrary, more advanced encoding can be managed with the encode-hook script.
 
 ### Step-by-step helpers
 

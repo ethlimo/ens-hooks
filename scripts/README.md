@@ -51,3 +51,10 @@ The `dataUrl` output is UTF-8 bytes hex (`0x...`) suitable for bytes inputs.
 - `npm run encode-contenthash -- --hook-data 0x...`
 - `npm run encode-full -- --file docs/example.html --node example.eth --chain-id 11155111 --target 0x...`
 - `npm run decode-contenthash -- --contenthash 0x...`
+
+## On-chain Helper
+
+Set a contenthash on a resolver using the Hardhat task (Sepolia by default):
+
+- `npm run set-contenthash -- 0xResolverAddress 0xYourContenthashBytes --node example.eth`
+- Uses Hardhat `configVariable("SEPOLIA_RPC_URL")` and `configVariable("SEPOLIA_PRIVATE_KEY")` from the configured environment or Hardhat keystore.

@@ -35,7 +35,8 @@
     "encode-hook": "tsx scripts/encode-hook.ts",
     "encode-contenthash": "tsx scripts/encode-contenthash.ts",
     "encode-full": "tsx scripts/full-encode.ts",
-    "decode-contenthash": "tsx scripts/decode-contenthash.ts"
+    "decode-contenthash": "tsx scripts/decode-contenthash.ts",
+    "set-contenthash": "npx hardhat set-contenthash --network sepolia"
   },
   "author": "eth.limo team",
   "license": "MIT",

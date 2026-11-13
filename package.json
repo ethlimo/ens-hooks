@@ -74,7 +74,8 @@
     "serialize-javascript": ">7.0.4",
     "lodash-es": ">4.17.23",
     "@actions/http-client": ">3.0.1",
-    "ws": "8.21.0"
+    "ws": "8.21.0",
+    "zod": "4.6.6"
   },
   "exports": {
     ".": {

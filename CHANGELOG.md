@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.16](https://github.com/ethlimo/ens-hooks/compare/v0.1.15...v0.1.16) (2026-11-13)
+
+
+### Bug Fixes
+
+* update zod to address security advisory ([#23](https://github.com/ethlimo/ens-hooks/issues/23)) ([c8a1937](https://github.com/ethlimo/ens-hooks/commit/c8a19379adce54037129db13b882a804e1f58e3a))
+
+
+### Dependencies
+
+* move hardhat and ens-contracts to devDependencies ([#21](https://github.com/ethlimo/ens-hooks/issues/21)) ([c298316](https://github.com/ethlimo/ens-hooks/commit/c29831642d21175ce8cc8ced41558dcf4d8eb523)), closes [#18](https://github.com/ethlimo/ens-hooks/issues/18)
+
 ## [0.1.15](https://github.com/ethlimo/ens-hooks/compare/v0.1.14...v0.1.15) (2026-02-19)
 
 

@@ -244,6 +244,25 @@ describe("EIP-8121 DataResolver Integration", function () {
             expect(result.message).to.not.include("Untrusted target");
         }
     });
+
+    it("should call the target even when the function name is also an ethers Contract method", async function () {
+        // DataResolver has none of these functions, so every call has to
+        // revert on chain instead of returning something from the Contract
+        // object itself.
+        const target: EIP8121Target = {
+            chainId: Number(chainId),
+            address: await dataResolverContract.getAddress()
+        };
+
+        for (const functionSignature of ["getAddress()", "getDeployedCode()", "toString()"]) {
+            const hookData = await encodeHook(functionSignature, functionSignature, "(bytes)", target);
+            const decoded = await decodeHook(hookData);
+
+            const result = await executeHook(decoded!, { providerMap });
+
+            expect(result._tag, functionSignature).to.equal("HookExecutionError");
+        }
+    });
 });
 
 describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {

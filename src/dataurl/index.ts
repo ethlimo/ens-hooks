@@ -1,7 +1,6 @@
 import { Contract, Provider, AbiCoder } from "ethers";
 import { 
     DecodedEIP8121Hook, 
-    extractFunctionName,
     parseParameterTypes,
     parseFunctionCallValues,
     isEIP8121Hook,
@@ -124,8 +123,6 @@ export async function executeHook(
         // Parse parameter values from functionCall (with generic error messages for security)
         const paramValues = parseFunctionCallValues(hook.functionCall, hook.functionSignature, false);
         
-        const functionName = extractFunctionName(hook.functionSignature);
-        
         const abi = [`function ${hook.functionSignature} view returns (bytes)`];
         
         const contract = new Contract(
@@ -134,7 +131,11 @@ export async function executeHook(
             provider
         );
         
-        const resultBytes = await contract[functionName](...paramValues);
+        // Look the function up by its signature. contract[name] would return
+        // the Contract's own method instead when the name is also one of
+        // them (getAddress, toString, ...), and the call would never reach
+        // the target.
+        const resultBytes = await contract.getFunction(hook.functionSignature)(...paramValues);
         const result = decodeResult(resultBytes, hook.returnType);
         
         return {

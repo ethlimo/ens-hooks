@@ -239,6 +239,10 @@ describe("FunctionCall Parser Tests", function() {
             const result = await executeHook(decoded!, { providerMap });
             
             expect(result._tag).to.equal("HookExecutionResult");
+            if (result._tag === "HookExecutionResult") {
+                const decodedResult = ethers.AbiCoder.defaultAbiCoder().decode(['address'], result.data);
+                expect(decodedResult[0]).to.equal(addr);
+            }
         });
 
         it("should handle zero address", async function() {
@@ -256,7 +260,9 @@ describe("FunctionCall Parser Tests", function() {
         });
 
         it("should handle mixed case address", async function() {
-            const addr = "0xAbCdEf1234567890aBcDeF1234567890AbCdEf12";
+            // ethers rejects mixed case that isn't a valid EIP-55 checksum,
+            // so this has to be a properly checksummed address
+            const addr = "0xabCDEF1234567890ABcDEF1234567890aBCDeF12";
             const hookData = await encodeHook(
                 "getAddress(address)",
                 `getAddress(${addr})`,
@@ -268,6 +274,10 @@ describe("FunctionCall Parser Tests", function() {
             const result = await executeHook(decoded!, { providerMap });
             
             expect(result._tag).to.equal("HookExecutionResult");
+            if (result._tag === "HookExecutionResult") {
+                const decodedResult = ethers.AbiCoder.defaultAbiCoder().decode(['address'], result.data);
+                expect(decodedResult[0]).to.equal(addr);
+            }
         });
 
         it("should reject invalid address format", async function() {

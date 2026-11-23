@@ -88,6 +88,14 @@ export async function encodeERC7930Target(chainId: number, address: string): Pro
 
 export async function decodeERC7930Target(target: string): Promise<EIP8121Target | null> {
     try {
+        // CAIP-350 (eip155) prohibits leading zero bytes in the chain
+        // reference, so there is only one way to write each chain id.
+        // Bytes: version (2), chain type (2), reference length (1), reference
+        const bytes = getBytes(target);
+        if (bytes.length > 5 && bytes[4] > 0 && bytes[5] === 0) {
+            return null;
+        }
+
         const rawChainId = await getChainId(target);
         const chainId = typeof rawChainId === 'number' ? rawChainId : Number(rawChainId);
         if (!Number.isInteger(chainId)) {

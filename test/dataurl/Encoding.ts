@@ -80,6 +80,18 @@ describe("EIP-8121 Hook Encoding", function () {
             expect(decoded).to.be.null;
         });
 
+        it("should return null for a chain reference with leading zeros", async function () {
+            const address = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+            // version, eip155 chain type, chain reference, 20 byte address
+            const canonical = "0x0001" + "0000" + "01" + "01" + "14" + address;
+            const paddedTo2Bytes = "0x0001" + "0000" + "02" + "0001" + "14" + address;
+            const zeroChainId = "0x0001" + "0000" + "01" + "00" + "14" + address;
+
+            expect(await decodeERC7930Target(canonical)).to.not.be.null;
+            expect(await decodeERC7930Target(paddedTo2Bytes)).to.be.null;
+            expect(await decodeERC7930Target(zeroChainId)).to.be.null;
+        });
+
         it("should roundtrip encode/decode", async function () {
             const target: EIP8121Target = {
                 chainId: 1,

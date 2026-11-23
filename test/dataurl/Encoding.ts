@@ -18,7 +18,7 @@ import {
     tryDecodeDataUri,
     type EIP8121Target
 } from "../../src/dataurl/encoding.js";
-import { detectAndDecodeHook } from "../../src/dataurl/index.js";
+import { detectAndDecodeHook, validateHook } from "../../src/dataurl/index.js";
 import { HOOK_SELECTOR } from "../../src/dataurl/constants.js";
 
 describe("EIP-8121 Hook Encoding", function () {
@@ -185,6 +185,24 @@ describe("EIP-8121 Hook Encoding", function () {
             const sig = "getData(bytes)";
             expect(() => parseParameterTypes(sig)).to.throw("Unsupported parameter type");
         });
+
+        it("should reject signatures that aren't in canonical form", function () {
+            // ethers would call getData(bytes32) for all of these, while
+            // keccak256 of the string itself gives a different selector
+            for (const sig of ["getData( bytes32 )", "getData(bytes32, uint256)", "getData(bytes32,)", "getData(,bytes32)", "getData(,)"]) {
+                expect(() => parseParameterTypes(sig), sig).to.throw("Invalid function signature format");
+            }
+        });
+
+        it("should not accept a hook with a non-canonical signature", function () {
+            const result = validateHook({
+                functionSignature: "getData(bytes32,)",
+                functionCall: "getData(0x1234567890123456789012345678901234567890123456789012345678901234)",
+                returnType: "(bytes)",
+                target: { chainId: 1, address: "0x1234567890123456789012345678901234567890" }
+            });
+            expect(result.isValid).to.be.false;
+        });
     });
 
     describe("Function Call Validation", function () {
@@ -309,6 +327,23 @@ describe("EIP-8121 Hook Encoding", function () {
                 expect.fail("Should have thrown on non-bytes return type");
             } catch (error: any) {
                 expect(error.message).to.include("Invalid return type");
+            }
+        });
+
+        it("should throw on a return type with surrounding whitespace", async function () {
+            // it would be stored as is, and validateHook only accepts "(bytes)"
+            const target: EIP8121Target = {
+                chainId: 1,
+                address: "0x1234567890123456789012345678901234567890"
+            };
+
+            for (const returnType of [" (bytes)", "(bytes) ", " (bytes) "]) {
+                try {
+                    await encodeHook("getData()", "getData()", returnType, target);
+                    expect.fail(`Should have thrown on ${JSON.stringify(returnType)}`);
+                } catch (error: any) {
+                    expect(error.message).to.include("Invalid return type");
+                }
             }
         });
 

@@ -154,14 +154,24 @@ export function parseParameterTypes(functionSignature: string): string[] {
         throw new Error('Invalid function signature format');
     }
     
-    const paramsString = match[1].trim();
+    // The selector is keccak256 of this exact string, and ethers normalizes
+    // the signature before computing it. "data(bytes32,)" or "data( bytes32 )"
+    // would call data(bytes32) here but a different selector in a client
+    // that hashes the string as is, so only the canonical form is accepted.
+    if (/\s/.test(functionSignature)) {
+        throw new Error('Invalid function signature format: no whitespace allowed');
+    }
+
+    const paramsString = match[1];
     if (!paramsString) {
         return [];
     }
-    
-    // Split by comma
-    const params = paramsString.split(',').map(p => p.trim()).filter(p => p.length > 0);
-    
+
+    const params = paramsString.split(',');
+    if (params.some(p => p.length === 0)) {
+        throw new Error('Invalid function signature format: empty parameter type');
+    }
+
     // Validate parameter count (0-2 only)
     if (params.length > 2) {
         throw new Error(`Too many parameters: ${params.length}. Maximum 2 parameters allowed.`);
@@ -530,8 +540,9 @@ export async function encodeHook(
     // This ensures parameter values are properly formatted and within limits
     parseFunctionCallValues(functionCall, functionSignature, true);
     
-    // Validate return type is bytes
-    if (returnType.trim() !== '(bytes)') {
+    // Compared as is: the string is stored in the hook, and validateHook
+    // rejects anything but exactly "(bytes)"
+    if (returnType !== '(bytes)') {
         throw new Error(`Invalid return type: ${returnType}. Only (bytes) return type is supported.`);
     }
     

@@ -13,7 +13,9 @@ import {
     validateHook,
     type ProviderMap 
 } from "../../src/dataurl/index.js";
-import { namehash } from "ethers";
+import { BrowserProvider, hexlify, namehash, toUtf8Bytes, toUtf8String } from "ethers";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 import "@nomicfoundation/hardhat-ethers-chai-matchers";
 
 describe("EIP-8121 DataResolver Integration", function () {
@@ -427,6 +429,65 @@ describe("ZeroParameterHookTarget - Zero-Parameter Hooks", function () {
         expect(result._tag).to.equal("HookExecutionResult");
         if (result._tag === "HookExecutionResult") {
             expect(result.data).to.equal(emptyData);
+        }
+    });
+});
+
+describe("OffchainHookTarget - CCIP-read", function () {
+    var ethers: HardhatEthers;
+    var provider: BrowserProvider;
+    var gateway: http.Server;
+    var gatewayUrl: string;
+    var gatewayRequests: number;
+    const payload = "data:text/plain,served by the gateway";
+
+    before(async () => {
+        const connection = await hre.network.connect();
+        ethers = (connection as any).ethers as HardhatEthers;
+        // the hardhat-ethers provider sends eth_call as is and never follows
+        // OffchainLookup, a plain ethers provider over the same network does
+        provider = new BrowserProvider(connection.provider);
+
+        gateway = http.createServer((req, res) => {
+            gatewayRequests++;
+            req.resume();
+            req.on("end", () => {
+                res.setHeader("content-type", "application/json");
+                res.end(JSON.stringify({ data: hexlify(toUtf8Bytes(payload)) }));
+            });
+        });
+        await new Promise<void>((resolve) => gateway.listen(0, "127.0.0.1", resolve));
+        gatewayUrl = `http://127.0.0.1:${(gateway.address() as AddressInfo).port}/`;
+    });
+
+    after(() => {
+        gateway.close();
+    });
+
+    beforeEach(() => {
+        gatewayRequests = 0;
+    });
+
+    it("should follow OffchainLookup to the gateway", async function () {
+        const [owner] = await ethers.getSigners();
+        const target = await ethers.deployContract("OffchainHookTarget", [[gatewayUrl]], owner);
+        const chainId = Number((await provider.getNetwork()).chainId);
+        const node = namehash("test.eth");
+
+        const hookData = await encodeHook(
+            "data(bytes32)",
+            `data(${node})`,
+            "(bytes)",
+            { chainId, address: await target.getAddress() }
+        );
+        const result = await executeHook((await decodeHook(hookData))!, {
+            providerMap: new Map([[chainId, provider]])
+        });
+
+        expect(result._tag).to.equal("HookExecutionResult");
+        expect(gatewayRequests).to.equal(1);
+        if (result._tag === "HookExecutionResult") {
+            expect(toUtf8String(result.data)).to.equal(payload);
         }
     });
 });

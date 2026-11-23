@@ -135,7 +135,13 @@ export async function executeHook(
         // the Contract's own method instead when the name is also one of
         // them (getAddress, toString, ...), and the call would never reach
         // the target.
-        const resultBytes = await contract.getFunction(hook.functionSignature)(...paramValues);
+        // ERC-8121 says CCIP-read must be on for hook calls. ethers only
+        // follows an OffchainLookup revert when the call itself asks for it,
+        // a provider setting alone doesn't do it.
+        const resultBytes = await contract.getFunction(hook.functionSignature)(
+            ...paramValues,
+            { enableCcipRead: true }
+        );
         const result = decodeResult(resultBytes, hook.returnType);
         
         return {

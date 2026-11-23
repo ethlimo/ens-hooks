@@ -22,10 +22,10 @@ String parameters are limited to 512 characters maximum. Only `\'` and `\\` esca
 Designed for contenthash resolution with support for global, node-specific, and cache-aware data retrieval.
 
 ### EIP-155 Chains Only
-ERC-7930 addresses limited to EVM chains via `@wonderland/interop-addresses` (v0.2.0). Non-EVM chains (Solana, Bitcoin, etc.) not supported.
+ERC-7930 addresses limited to EVM chains via `@wonderland/interop-addresses` (v0.8.1). Non-EVM chains (Solana, Bitcoin, etc.) not supported.
 
-### CCIP-Read Provider Dependency
-Assumes caller's provider has ERC-3668 (CCIP-Read) enabled. This library handles encoding/decoding only.
+### CCIP-Read Gateways
+`executeHook` enables ERC-3668 (CCIP-Read) on the hook call, as ERC-8121 requires. ethers then fetches whatever gateway urls the target returns, the library doesn't restrict them. Callers running this server-side should limit which urls their provider may fetch (e.g. public https only).
 
 ### No Recursive Resolution
 Hooks cannot point to other hooks. No depth limits or circular reference detection implemented.

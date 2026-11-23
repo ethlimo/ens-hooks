@@ -1,10 +1,10 @@
 # ENS Hooks - EIP-8121 Implementation
 
-TypeScript library for encoding, decoding, and executing [EIP-8121](./notes/EIP-8121.md) hooks with ERC-7930 interoperable addresses. Enables cross-chain function calls for ENS contenthash resolution with optional trust verification.
+TypeScript library for encoding, decoding, and executing [EIP-8121](./notes/spec/erc-8121.md) hooks with ERC-7930 interoperable addresses. Enables cross-chain function calls for ENS contenthash resolution with optional trust verification.
 
 ## Overview
 
-This library implements [EIP-8121](./notes/EIP-8121.md) hooks, a specification for cross-chain function calls. A hook fully specifies what function to call, with what parameters, on which contract, on which chain using [ERC-7930](https://eips.ethereum.org/EIPS/eip-7930) interoperable addresses.
+This library implements [EIP-8121](./notes/spec/erc-8121.md) hooks, a specification for cross-chain function calls. A hook fully specifies what function to call, with what parameters, on which contract, on which chain using [ERC-7930](https://eips.ethereum.org/EIPS/eip-7930) interoperable addresses.
 
 **Key Features:**
 - EIP-8121 hook encoding (selector `0x6113bfa3`)
@@ -55,7 +55,7 @@ const hookData = await encodeHook(
 
 ```typescript
 import { decodeHook, executeHook, ProviderMap } from '@ethlimo/ens-hooks';
-import { ethers, namehash } from 'ethers';
+import { ethers } from 'ethers';
 
 // Decode the hook
 const hook = await decodeHook(hookData);
@@ -66,10 +66,8 @@ const providerMap: ProviderMap = new Map([
 ]);
 
 // Execute the hook
-const result = await executeHook(hook!, {
-    params: [namehash("example.eth")],
-    providerMap
-});
+// Parameter values come from the hook itself (its functionCall)
+const result = await executeHook(hook!, { providerMap });
 
 if (result._tag === "HookExecutionResult") {
     console.log("Result:", result.data);
@@ -96,7 +94,7 @@ Hooks support functions with 0-2 parameters of fixed-size Solidity primitives:
 **Supported Types:** `bool`, `address`, `uint8-256`, `int8-256`, `bytes1-32`, `string` (max 512 chars)
 
 ```typescript
-import { executeHook } from '@ethlimo/ens-hooks';
+import { encodeHook, decodeHook, executeHook } from '@ethlimo/ens-hooks';
 import { namehash } from 'ethers';
 
 // 0-parameter hook
@@ -107,9 +105,7 @@ const globalHook = await encodeHook(
     { chainId: 1, address: "0x..." }
 );
 
-const globalResult = await executeHook(await decodeHook(globalHook)!, {
-    providerMap  // No params
-});
+const globalResult = await executeHook((await decodeHook(globalHook))!, { providerMap });
 
 // 1-parameter hook (node-specific data)
 const node = namehash("example.eth");
@@ -120,10 +116,7 @@ const nodeHook = await encodeHook(
     { chainId: 1, address: "0x..." }
 );
 
-const nodeResult = await executeHook(await decodeHook(nodeHook)!, {
-    params: [node],  // Single parameter array
-    providerMap
-});
+const nodeResult = await executeHook((await decodeHook(nodeHook))!, { providerMap });
 
 // 2-parameter hook (with cache-busting)
 const hashOfContent = "0xabcd..."; // Hash or autoincrement
@@ -134,10 +127,7 @@ const twoParamHook = await encodeHook(
     { chainId: 1, address: "0x..." }
 );
 
-const twoParamResult = await executeHook(await decodeHook(twoParamHook)!, {
-    params: [node, hashOfContent],  // Two parameter array
-    providerMap
-});
+const twoParamResult = await executeHook((await decodeHook(twoParamHook))!, { providerMap });
 ```
 
 ### Trust Verification
@@ -158,7 +148,6 @@ const trustedTargets = createTrustedTargets([
 
 // Execute with trust verification
 const result = await executeHook(hook!, {
-    params: [namehash("example.eth")],
     providerMap,
     trustedTargets
 });
@@ -172,17 +161,14 @@ Three verification modes supported:
 ## API Reference
 
 ### Hook Encoding/Decoding
-- `encodeHook()` - Encode EIP-8121 hook (bytes format, 5 parameters)
+- `encodeHook(functionSignature, functionCall, returnType, target)` - Encode EIP-8121 hook (bytes format, without the optional function selector)
 - `decodeHook()` - Decode EIP-8121 hook (bytes format)
 - `computeSelector()` - Compute 4-byte function selector from signature
 - `parseParameterTypes()` - Parse and validate parameter types (0-2 fixed-size primitives)
 - `validateFunctionCallMatchesSignature()` - Strict validation of call vs signature
 
 ### Hook Execution
-- `executeHook(hook, options)` - Execute hook on target chain with type-safe options:
-  - For 0-parameter hooks: `{ providerMap, trustedTargets?, throwOnUntrusted? }`
-  - For 1-parameter hooks: `{ params: [string], providerMap, trustedTargets?, throwOnUntrusted? }`
-  - For 2-parameter hooks: `{ params: [string, string], providerMap, trustedTargets?, throwOnUntrusted? }`
+- `executeHook(hook, { providerMap, trustedTargets?, throwOnUntrusted? })` - Execute hook on target chain. Parameter values are taken from the hook's `functionCall`
 - `validateHook()` - Validate parameter count (0-2) and types (fixed-size primitives)
 - `detectAndDecodeHook()` - Detect and decode hooks from bytes format
 
@@ -203,11 +189,11 @@ Three verification modes supported:
 npm test
 ```
 
-69 tests covering encoding, decoding, execution, and trust verification.
+Tests cover encoding, decoding, execution, and trust verification.
 
 ## Specification
 
-See [notes/EIP-8121.md](./notes/EIP-8121.md) for the full EIP-8121 specification and [notes/LIMITATIONS.md](./notes/LIMITATIONS.md) for implementation scope.
+See [notes/spec/erc-8121.md](./notes/spec/erc-8121.md) for the full EIP-8121 specification and [notes/LIMITATIONS.md](./notes/LIMITATIONS.md) for implementation scope.
 
 ## License
 

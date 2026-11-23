@@ -290,6 +290,33 @@ describe("FunctionCall Parser Tests", function() {
                 )
             ).to.be.rejectedWith(/invalid address format/);
         });
+
+        it("should reject a mixed case address with a wrong checksum", async function() {
+            // valid checksum is 0xabCDEF1234567890ABcDEF1234567890aBCDeF12
+            await expect(
+                encodeHook(
+                    "getAddress(address)",
+                    "getAddress(0xabCDEF1234567890ABcDEF1234567890aBCDeF1a)",
+                    "(bytes)",
+                    { chainId, address: contractAddress }
+                )
+            ).to.be.rejectedWith(/invalid address checksum/);
+        });
+
+        it("should accept all lowercase and all uppercase addresses", async function() {
+            for (const addr of ["0xabcdef1234567890abcdef1234567890abcdef12", "0xABCDEF1234567890ABCDEF1234567890ABCDEF12"]) {
+                const hookData = await encodeHook(
+                    "getAddress(address)",
+                    `getAddress(${addr})`,
+                    "(bytes)",
+                    { chainId, address: contractAddress }
+                );
+
+                const result = await executeHook((await decodeHook(hookData))!, { providerMap });
+
+                expect(result._tag, addr).to.equal("HookExecutionResult");
+            }
+        });
     });
 
     describe("Uint Parameter Tests", function() {

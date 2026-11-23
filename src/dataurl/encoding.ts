@@ -387,6 +387,11 @@ export function parseFunctionCallValues(
                     if (!/^0x[0-9a-fA-F]{40}$/.test(valueStr)) {
                         throw new Error(`Parameter ${paramIndex + 1} (type ${paramType}): invalid address format, expected 0x followed by 40 hex characters`);
                     }
+                    // mixed case means EIP-55, ethers refuses a wrong checksum
+                    // at call time, so catch it here already
+                    if (!ethers.isAddress(valueStr)) {
+                        throw new Error(`Parameter ${paramIndex + 1} (type ${paramType}): invalid address checksum`);
+                    }
                     values.push(valueStr);
                 } else if (paramType.startsWith('bytes')) {
                     // Validate hex bytes format
